@@ -1,0 +1,104 @@
+# tablas
+achievement_rule_groups:uuid id PK;uuid achievement_id FK;text match_mode
+achievement_rules:uuid id PK;uuid rule_group_id FK;text metric;text operator;numeric target_value
+achievements:uuid id PK;text name UK;text description;text icon ?;uuid course_id FK,UK ?;smallint sort_order
+age_groups:uuid id PK;text code UK;text name;smallint min_age;smallint max_age ?;smallint sort_order UK
+article_sources:uuid article_id FK,PK;uuid source_id FK,PK
+articles:uuid id PK;uuid lesson_id FK,UK;text title UK;text summary;text body;text author;text published_label ?;boolean is_public;date reviewed_at ?
+audit_entity_types:uuid id PK;text name UK
+audit_log_changes:uuid id PK;uuid audit_log_id FK;text field_name;text old_value ?;text new_value ?
+audit_logs:uuid id PK;uuid actor_id FK ?;uuid entity_type_id FK;uuid entity_id;text action;timestamptz created_at
+courses:uuid id PK;uuid age_group_id FK,UK;smallint level_number UK;text title;text objective;smallint sort_order UK;boolean is_published;timestamptz deleted_at ?;timestamptz created_at;timestamptz updated_at
+critical_exercise_issues:uuid id PK;uuid exercise_id FK;text issue_type;text fragment;text explanation
+critical_exercises:uuid id PK;uuid lesson_id FK;text ai_text;text explanation
+eco_estimates:uuid id PK;uuid user_id FK;uuid factor_version_id FK;integer interactions;timestamptz created_at
+eco_factor_sources:uuid factor_version_id FK,PK;uuid source_id FK,PK
+eco_factor_versions:uuid id PK;uuid task_type_id FK,UK;numeric water_ml_min;numeric water_ml_max;numeric energy_wh;date valid_from UK
+eco_task_types:uuid id PK;text name UK
+exercise_attempts:uuid id PK;uuid user_id FK;uuid exercise_id FK;text justification ?;numeric score ?;timestamptz created_at
+flashcard_reviews:uuid user_id FK,PK;uuid card_id FK,PK;smallint box;timestamptz next_review_at;timestamptz updated_at
+flashcards:uuid id PK;uuid lesson_id FK,UK;text front;text back;smallint sort_order UK
+lesson_activities:uuid id PK;uuid lesson_id FK,UK;text title;text provider;text embed_url;smallint sort_order UK
+lesson_progress:uuid user_id FK,PK;uuid lesson_id FK,PK;text status;integer time_spent_s;timestamptz last_activity_at;timestamptz completed_at ?
+lessons:uuid id PK;uuid course_id FK,UK;text code UK;text title;text content;text type;smallint sort_order UK;smallint duration_min ?;timestamptz deleted_at ?;timestamptz created_at;timestamptz updated_at
+privacy_consents:uuid id PK;uuid user_id FK,UK;uuid notice_version_id FK,UK;timestamptz accepted_at
+privacy_notice_versions:uuid id PK;text version UK;text content_reference;timestamptz published_at
+profiles:uuid id FK,PK;text full_name;date birth_date;text institution ?;text academic_level ?;uuid role_id FK;boolean is_active;timestamptz created_at;timestamptz updated_at
+prompt_attempts:uuid id PK;uuid user_id FK,UK;uuid scenario_id FK,UK;smallint score;smallint attempt_no UK;timestamptz created_at
+question_options:uuid id PK;uuid question_id FK,UK;text option_text;boolean is_correct;smallint correct_order ?;smallint sort_order UK
+questions:uuid id PK;uuid quiz_id FK,UK;text statement;text type;text explanation ?;smallint sort_order UK
+quiz_answer_options:uuid answer_id FK,PK;uuid option_id FK,PK
+quiz_answers:uuid id PK;uuid attempt_id FK,UK;uuid question_id FK,UK;text text_answer ?;numeric score_earned ?
+quiz_attempts:uuid id PK;uuid user_id FK;uuid quiz_id FK;numeric score;boolean passed;timestamptz started_at;timestamptz finished_at
+quizzes:uuid id PK;uuid lesson_id FK ?;uuid course_id FK ?;text title;numeric passing_score;boolean is_published
+roles:uuid id PK;text name UK
+scenario_criteria:uuid id PK;uuid scenario_id FK,UK;text criterion_key UK;text label;smallint weight;smallint sort_order UK
+scenario_response_templates:uuid id PK;uuid scenario_id FK;smallint min_score;smallint max_score;text response_text
+scenarios:uuid id PK;text title;text goal;boolean is_published
+selected_exercise_issues:uuid attempt_id FK,PK;uuid issue_id FK,PK
+sources:uuid id PK;text citation;text url UK;date consulted_at ?
+survey_answer_options:uuid answer_id FK,PK;uuid option_id FK,PK
+survey_answers:uuid id PK;uuid response_id FK,UK;uuid question_id FK,UK;text text_answer ?;numeric numeric_value ?
+survey_options:uuid id PK;uuid question_id FK,UK;text option_text;numeric numeric_value ?;smallint sort_order UK
+survey_questions:uuid id PK;uuid survey_id FK,UK;text prompt;text response_type;boolean is_required;smallint sort_order UK
+survey_responses:uuid id PK;uuid user_id FK;uuid survey_id FK;timestamptz submitted_at
+surveys:uuid id PK;text type;text title;boolean is_published
+user_achievements:uuid user_id FK,PK;uuid achievement_id FK,PK;timestamptz earned_at
+
+# relaciones
+achievement_rule_groups>achievements>achievement_id
+achievement_rules>achievement_rule_groups>rule_group_id
+achievements>courses>course_id
+article_sources>sources>source_id
+article_sources>articles>article_id
+articles>lessons>lesson_id
+audit_log_changes>audit_logs>audit_log_id
+audit_logs>audit_entity_types>entity_type_id
+audit_logs>profiles>actor_id
+courses>age_groups>age_group_id
+critical_exercise_issues>critical_exercises>exercise_id
+critical_exercises>lessons>lesson_id
+eco_estimates>eco_factor_versions>factor_version_id
+eco_estimates>profiles>user_id
+eco_factor_sources>eco_factor_versions>factor_version_id
+eco_factor_sources>sources>source_id
+eco_factor_versions>eco_task_types>task_type_id
+exercise_attempts>critical_exercises>exercise_id
+exercise_attempts>profiles>user_id
+flashcard_reviews>flashcards>card_id
+flashcard_reviews>profiles>user_id
+flashcards>lessons>lesson_id
+lesson_activities>lessons>lesson_id
+lesson_progress>profiles>user_id
+lesson_progress>lessons>lesson_id
+lessons>courses>course_id
+privacy_consents>profiles>user_id
+privacy_consents>privacy_notice_versions>notice_version_id
+profiles>auth.users>id
+profiles>roles>role_id
+prompt_attempts>profiles>user_id
+prompt_attempts>scenarios>scenario_id
+question_options>questions>question_id
+questions>quizzes>quiz_id
+quiz_answer_options>quiz_answers>answer_id
+quiz_answer_options>question_options>option_id
+quiz_answers>questions>question_id
+quiz_answers>quiz_attempts>attempt_id
+quiz_attempts>profiles>user_id
+quiz_attempts>quizzes>quiz_id
+quizzes>lessons>lesson_id
+quizzes>courses>course_id
+scenario_criteria>scenarios>scenario_id
+scenario_response_templates>scenarios>scenario_id
+selected_exercise_issues>critical_exercise_issues>issue_id
+selected_exercise_issues>exercise_attempts>attempt_id
+survey_answer_options>survey_answers>answer_id
+survey_answer_options>survey_options>option_id
+survey_answers>survey_responses>response_id
+survey_answers>survey_questions>question_id
+survey_options>survey_questions>question_id
+survey_questions>surveys>survey_id
+survey_responses>profiles>user_id
+survey_responses>surveys>survey_id
+user_achievements>profiles>user_id
+user_achievements>achievements>achievement_id
