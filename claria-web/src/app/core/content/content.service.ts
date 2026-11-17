@@ -10,8 +10,12 @@ import {
   LessonDetail,
   LessonSummary,
   LevelSummary,
+  AttemptForReview,
   Mission,
   PromptEvaluation,
+  PromptField,
+  PromptFields,
+  PromptRubric,
   Quiz,
   QuizAnswer,
   QuizResult,
@@ -57,6 +61,23 @@ function friendly(error: PostgrestError): ContentError {
   return new ContentError(
     error.code === 'P0001' ? error.message : 'Algo salió mal. Inténtalo de nuevo.',
   );
+}
+
+/** Convierte la respuesta de evaluate_guided_prompt() (snake_case) al modelo. */
+function toEvaluation(data: unknown): PromptEvaluation {
+  const raw = data as PromptEvaluation & {
+    requirements_met: number;
+    requirements_total: number;
+    off_topic: boolean;
+    attempt_no?: number;
+  };
+  return {
+    ...raw,
+    requirementsMet: raw.requirements_met,
+    requirementsTotal: raw.requirements_total,
+    offTopic: raw.off_topic,
+    attemptNo: raw.attempt_no,
+  };
 }
 
 /** Primera fuente de un artículo (cada artículo del plan cita una). */
@@ -197,6 +218,7 @@ export class ContentService {
         .from('prompt_attempts')
         .select('id')
         .eq('scenario_id', scenario.id)
+        .eq('user_id', this.auth.session()?.user.id ?? '')
         .eq('passed', true)
         .limit(1);
       missionPassed = (passed ?? []).length > 0;
@@ -437,27 +459,60 @@ export class ContentService {
 
   // --- Evaluador de prompts -------------------------------------------------
 
+  /** Campos del constructor guiado de cada rúbrica (sin Eficiencia, que no es un campo). */
+  async getPromptFields(): Promise<Record<PromptRubric, PromptField[]>> {
+    const { data, error } = await this.supabase
+      .from('prompt_criteria')
+      .select('rubric, criterion_key, label, description, min_words, sort_order')
+      .neq('criterion_key', 'eficiencia')
+      .order('sort_order');
+    if (error) throw error;
+
+    const fields: Record<PromptRubric, PromptField[]> = { basica: [], avanzada: [] };
+    for (const row of data ?? []) {
+      fields[row.rubric as PromptRubric].push({
+        key: row.criterion_key,
+        label: row.label,
+        description: row.description,
+        minWords: row.min_words,
+      });
+    }
+    return fields;
+  }
+
+  /** Rúbrica del usuario para el modo libre. */
+  async getMyRubric(): Promise<PromptRubric> {
+    const { data, error } = await this.supabase.rpc('my_prompt_rubric');
+    if (error) throw error;
+    return data as PromptRubric;
+  }
+
   /**
-   * Misiones del evaluador con los intentos del usuario. Estudiantes: solo las de su
-   * grupo de edad; docentes y administradores: todas.
+   * Misiones del evaluador con sus requisitos y los intentos del usuario.
+   * Estudiantes: solo las de su grupo de edad; docentes y administradores: todas.
    */
   async getMissions(): Promise<Mission[]> {
     const levels = await this.ensureLevels();
     const isStaff = this.auth.isStaff();
     const myGroup = levels[0]?.ageGroupCode;
+    const userId = this.auth.session()?.user.id;
 
     const [{ data, error }, { data: attempts }] = await Promise.all([
       this.supabase
         .from('scenarios')
         .select(
           `id, title, goal, passing_score, sort_order,
-           age_groups(code, name, sort_order),
-           lessons(code, courses(level_number))`,
+           age_groups(code, name, sort_order, prompt_rubric),
+           lessons(code, courses(level_number)),
+           scenario_requirements(field, label, sort_order)`,
         )
         .eq('is_published', true),
       this.supabase
         .from('prompt_attempts')
-        .select('scenario_id, score, attempt_no, passed, prompt_text, created_at')
+        .select(
+          'scenario_id, score, reviewed_score, review_note, attempt_no, passed, prompt_text, created_at',
+        )
+        .eq('user_id', userId ?? '')
         .order('attempt_no'),
     ]);
     if (error) throw error;
@@ -468,16 +523,26 @@ export class ContentService {
           code: string;
           name: string;
           sort_order: number;
+          prompt_rubric: PromptRubric;
         };
         const lesson = row.lessons as unknown as {
           code: string;
           courses: { level_number: number };
         } | null;
+        const requirements = [
+          ...((row.scenario_requirements ?? []) as {
+            field: string;
+            label: string;
+            sort_order: number;
+          }[]),
+        ].sort((a, b) => a.sort_order - b.sort_order);
         const mine = (attempts ?? [])
           .filter((a) => a.scenario_id === row.id)
           .map((a) => ({
             attemptNo: a.attempt_no,
             score: a.score,
+            reviewedScore: a.reviewed_score,
+            reviewNote: a.review_note,
             passed: a.passed,
             promptText: a.prompt_text,
             createdAt: a.created_at,
@@ -487,13 +552,15 @@ export class ContentService {
           title: row.title,
           goal: row.goal,
           passingScore: row.passing_score,
+          rubric: group.prompt_rubric,
           ageGroupCode: group.code,
           ageGroupName: group.name,
           lessonCode: lesson?.code ?? null,
           levelNumber: lesson?.courses.level_number ?? null,
+          requirements: requirements.map((r) => ({ field: r.field, label: r.label })),
           attempts: mine,
           passed: mine.some((a) => a.passed),
-          bestScore: mine.length ? Math.max(...mine.map((a) => a.score)) : null,
+          bestScore: mine.length ? Math.max(...mine.map((a) => a.reviewedScore ?? a.score)) : null,
           order: group.sort_order * 100 + row.sort_order,
         };
       })
@@ -503,24 +570,68 @@ export class ContentService {
   }
 
   /** Califica sin guardar (vista previa mientras escribe). */
-  async evaluatePrompt(text: string, missionId: string | null): Promise<PromptEvaluation> {
-    const { data, error } = await this.supabase.rpc('evaluate_prompt', {
-      p_text: text,
+  async evaluatePrompt(fields: PromptFields, missionId: string | null): Promise<PromptEvaluation> {
+    const { data, error } = await this.supabase.rpc('evaluate_guided_prompt', {
+      p_fields: fields,
       p_scenario_id: missionId,
     });
     if (error) throw friendly(error);
-    return data as PromptEvaluation;
+    return toEvaluation(data);
   }
 
   /** Envía un intento de misión: el servidor califica y lo guarda. */
-  async submitPromptAttempt(missionId: string, text: string): Promise<PromptEvaluation> {
+  async submitPromptAttempt(missionId: string, fields: PromptFields): Promise<PromptEvaluation> {
     const { data, error } = await this.supabase.rpc('submit_prompt_attempt', {
       p_scenario_id: missionId,
-      p_text: text,
+      p_fields: fields,
     });
     if (error) throw friendly(error);
-    const raw = data as PromptEvaluation & { attempt_no: number };
-    return { ...raw, attemptNo: raw.attempt_no };
+    return toEvaluation(data);
+  }
+
+  /** Intentos de todas las misiones, para la revisión docente (RLS: solo staff). */
+  async getAttemptsForReview(): Promise<AttemptForReview[]> {
+    const { data, error } = await this.supabase
+      .from('prompt_attempts')
+      .select(
+        `id, attempt_no, score, reviewed_score, review_note, passed, prompt_text, created_at,
+         profiles!prompt_attempts_user_id_fkey(full_name),
+         scenarios(title, lessons(code))`,
+      )
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+
+    return (data ?? []).map((row) => {
+      const profile = row.profiles as unknown as { full_name: string } | null;
+      const scenario = row.scenarios as unknown as {
+        title: string;
+        lessons: { code: string } | null;
+      };
+      return {
+        id: row.id,
+        studentName: profile?.full_name ?? 'Estudiante',
+        missionTitle: scenario.title,
+        lessonCode: scenario.lessons?.code ?? null,
+        attemptNo: row.attempt_no,
+        score: row.score,
+        reviewedScore: row.reviewed_score,
+        reviewNote: row.review_note,
+        passed: row.passed,
+        promptText: row.prompt_text,
+        createdAt: row.created_at,
+      };
+    });
+  }
+
+  /** Un docente corrige el puntaje de un intento (el servidor recalcula si aprueba). */
+  async reviewAttempt(attemptId: string, score: number, note: string): Promise<void> {
+    const { error } = await this.supabase.rpc('review_prompt_attempt', {
+      p_attempt_id: attemptId,
+      p_score: score,
+      p_note: note,
+    });
+    if (error) throw friendly(error);
   }
 
   // --- Apoyo ----------------------------------------------------------------

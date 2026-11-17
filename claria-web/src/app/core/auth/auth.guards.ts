@@ -19,3 +19,15 @@ export const guestGuard: CanActivateFn = async () => {
   await auth.ready;
   return !auth.isLoggedIn() || router.createUrlTree(['/inicio']);
 };
+
+/** Solo docentes y administradores (p. ej. la revisión de intentos). */
+export const staffGuard: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  await auth.ready;
+  // El perfil se carga después de la sesión: se espera un momento si aún no llega.
+  for (let i = 0; i < 20 && auth.isLoggedIn() && !auth.profile(); i++) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return auth.isStaff() || router.createUrlTree(['/evaluador']);
+};

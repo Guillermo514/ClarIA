@@ -279,3 +279,208 @@
     align-items: flex-start;
   }
 }
+
+/* --- Constructor guiado ------------------------------------------------- */
+
+.evaluator-head {
+  align-items: flex-start;
+}
+
+.builder {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  padding-left: 14px;
+  border-left: 4px solid var(--line);
+  transition: border-color 0.2s;
+}
+
+.field.strong {
+  border-left-color: #10c98f;
+}
+
+.field.partial {
+  border-left-color: #f0a43a;
+}
+
+.field.missing {
+  border-left-color: #f0566a;
+}
+
+.field-head label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.field-head small {
+  color: var(--ink-subtle);
+}
+
+.field-num {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--brand-tint);
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.field-score {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.field.strong .field-score {
+  color: #10c98f;
+}
+
+.field.partial .field-score {
+  color: #f0a43a;
+}
+
+.field.missing .field-score {
+  color: #f0566a;
+}
+
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips li {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  color: var(--ink-subtle);
+  font-size: 12px;
+}
+
+.chips li.ok {
+  border-color: rgb(16 201 143 / 50%);
+  color: #10c98f;
+}
+
+.field-feedback {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ev-message.off-topic {
+  color: #f0566a;
+  font-weight: 700;
+}
+
+.evaluation .criterion {
+  margin-top: 14px;
+}
+
+.composed {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.composed pre,
+.review-card pre {
+  margin: 10px 0 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+
+/* --- Revisión docente --------------------------------------------------- */
+
+.review-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: var(--ink-muted);
+}
+
+.review-list {
+  display: grid;
+  gap: 14px;
+}
+
+.review-card {
+  padding: 18px 20px;
+}
+
+.review-card.ok {
+  border-color: rgb(16 201 143 / 45%);
+}
+
+.review-card small {
+  color: var(--ink-subtle);
+}
+
+.review-score {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.review-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.review-form label {
+  display: grid;
+  gap: 4px;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.review-form input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+}
+
+.review-form input[type='number'] {
+  width: 90px;
+}
+
+.review-note {
+  flex: 1;
+  min-width: 200px;
+}

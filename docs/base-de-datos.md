@@ -151,25 +151,40 @@ where id = (select id from auth.users where email = 'correo@ejemplo.com');
 
 ## Evaluador de IA (prompts)
 
-Califica prompts **con reglas en el servidor**, sin enviar textos a ninguna IA externa.
+Constructor guiado **sin costo y sin IA externa**: el estudiante escribe cada ingrediente en su
+propio campo y el servidor califica cada campo por separado.
 
-| Rúbrica | Grupos | Criterios |
+| Rúbrica | Grupos | Campos (puntos) |
 |---|---|---|
-| `basica` | 8-11 y 12-14 | Rol, Contexto, Tarea, Formato y Ejemplo (lección 5.3), 20 pts cada uno. |
-| `avanzada` | 15-17 y 18+ | Los 5 ingredientes (14 pts c/u) + Eficiencia (15) + Técnicas avanzadas de la lección 7.1 (15). |
+| `basica` | 8-11 y 12-14 | Rol, Contexto, Tarea, Formato, Ejemplo (20 c/u). |
+| `avanzada` | 15-17 y 18+ | Los 5 anteriores (14 c/u) + Técnicas (15) + Eficiencia del prompt completo (15). |
 
-- Cada criterio vale completo (`strong`), la mitad (`partial`) o nada, según los patrones de
-  `prompt_rules`. Eficiencia se mide por número de palabras (15 a 120 = completo).
-- `prompt_penalties` resta puntos al pedir que la IA haga la tarea (máximo −40).
-- Reglas, criterios y penalizaciones son **datos**: un administrador puede ajustarlos sin cambiar
-  código. Los patrones son expresiones regulares de PostgreSQL sobre el texto en minúsculas y sin
-  acentos (`\y` = límite de palabra); un trigger rechaza patrones inválidos.
-- **Misiones** (`scenarios`): por grupo de edad, con `passing_score` (70). Si tienen `lesson_id`
-  son obligatorias para completar esa lección (5.4 y 7.1). Los intentos (`prompt_attempts`) solo se
-  guardan con `submit_prompt_attempt()`.
-- El borrador de misiones está en [`supabase/seed/misiones-evaluador.sql`](../supabase/seed/misiones-evaluador.sql).
+Cada campo pasa por tres revisiones (`evaluate_guided_prompt`):
+
+1. **Calidad mínima**: palabras mínimas (`prompt_criteria.min_words`), escrito como oración y no como
+   lista de palabras clave, ninguna palabra repetida 3 veces o más, y no copiado de otro campo.
+2. **Estructura**: las reglas de `prompt_rules` de ese criterio, aplicadas solo a ese campo.
+3. **Requisitos de la misión** (`scenario_requirements`): conceptos que ese campo debe mencionar,
+   con sinónimos. Un campo que no menciona ninguno vale 0.
+
+- Completo = estructura correcta y todos sus requisitos; la mitad = cumple en parte; 0 = no cumple.
+- Si el prompt cumple **menos de la mitad** de los requisitos de la misión, el puntaje se limita a 40
+  («no corresponde a esta misión»).
+- `prompt_penalties` resta puntos por pedir que la IA haga la tarea (máximo −40).
+- Las misiones obligatorias (lecciones 5.4 y 7.1) se aprueban con 70+; `complete_lesson()` lo exige.
+- **Revisión docente**: docentes y admins ven todos los intentos en `/evaluador/revision` y pueden
+  corregir el puntaje con `review_prompt_attempt()`; el intento queda aprobado o no según el puntaje
+  corregido.
+
+Pruebas de calibración (misión «La exposición de historia»): prompt bueno 100, con sinónimos 90,
+pedir que haga la tarea 65, otro tema 40, lista de palabras clave 20, campos copiados 20, palabras
+repetidas 0.
+
+**Editar misiones y requisitos:** [`supabase/seed/misiones-evaluador.sql`](../supabase/seed/misiones-evaluador.sql)
+(idempotente; se ejecuta en el SQL Editor).
 
 | Función | Uso |
 |---|---|
-| `evaluate_prompt(texto, misión?)` | Califica sin guardar (vista previa). |
-| `submit_prompt_attempt(misión, texto)` | Califica y guarda el intento. |
+| `evaluate_guided_prompt(campos, misión?)` | Califica sin guardar (vista previa). |
+| `submit_prompt_attempt(misión, campos)` | Califica y guarda el intento. |
+| `review_prompt_attempt(intento, puntaje, nota)` | Revisión docente (solo staff). |

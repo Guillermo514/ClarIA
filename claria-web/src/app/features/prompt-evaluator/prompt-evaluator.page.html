@@ -1,10 +1,15 @@
-<div class="page-head">
-  <div class="eyebrow">▦ LABORATORIO DE PROMPTS</div>
-  <h1>Evaluador de IA</h1>
-  <p>
-    Escribe un prompt y descubre qué tan claro es para una IA. Se califica con los 5 ingredientes
-    de un buen prompt: rol, contexto, tarea, formato y ejemplo.
-  </p>
+<div class="page-head row-between evaluator-head">
+  <div>
+    <div class="eyebrow">▦ LABORATORIO DE PROMPTS</div>
+    <h1>Evaluador de IA</h1>
+    <p>
+      Arma tu prompt ingrediente por ingrediente. Cada campo se revisa por separado y te dice qué
+      le falta para que la IA entienda exactamente lo que necesitas.
+    </p>
+  </div>
+  @if (isStaff()) {
+    <a class="btn" routerLink="/evaluador/revision">🛡 Revisar intentos</a>
+  }
 </div>
 
 <section class="evaluator">
@@ -20,6 +25,9 @@
           }
         </span>
         <small>
+          @if (isStaff()) {
+            {{ m.ageGroupName }} ·
+          }
           @if (m.lessonCode) {
             Obligatoria · Lección {{ m.lessonCode }} ·
           }
@@ -33,7 +41,7 @@
     }
     <button class="panel mission" [class.selected]="selectedId() === null" (click)="select(null)">
       <span class="mission-head"><b>✎ Modo libre</b></span>
-      <small>Evalúa cualquier prompt; no se guarda.</small>
+      <small>Practica cualquier prompt; no se guarda.</small>
     </button>
   </aside>
 
@@ -53,45 +61,64 @@
       </article>
     }
 
-    <!-- Editor -->
-    <article class="panel prompt-editor">
-      <div class="row-between">
-        <label for="prompt-input"><b>Tu prompt</b></label>
-        <span class="counter">{{ text().length }} / {{ maxLength }}</span>
-      </div>
-      <textarea
-        id="prompt-input"
-        [maxlength]="maxLength"
-        placeholder="Escribe aquí la instrucción que le darías a la IA…"
-        [ngModel]="text()"
-        (ngModelChange)="onTextChange($event)"
-      ></textarea>
+    <!-- Constructor guiado -->
+    <article class="panel builder">
+      @for (field of fields(); track field.key; let i = $index) {
+        @let res = result(field.key);
+        <div class="field" [class]="'field ' + (res?.level ?? 'idle')">
+          <div class="row-between field-head">
+            <label [for]="'field-' + field.key">
+              <span class="field-num">{{ i + 1 }}</span>
+              <b>{{ field.label }}</b>
+              <small>{{ field.description }}</small>
+            </label>
+            @if (res) {
+              <span class="field-score">{{ levelIcon(res.level) }} {{ res.points }}/{{ res.weight }}</span>
+            }
+          </div>
 
-      <div class="row-between editor-actions">
-        <button class="text-button" (click)="showTemplate.set(!showTemplate())">
-          {{ showTemplate() ? 'Ocultar estructura' : 'Ver estructura sugerida' }}
-        </button>
-        @if (mission()) {
-          <button
-            class="btn primary"
-            [disabled]="sending() || text().trim().length < 5"
-            (click)="submit()"
-          >
-            {{ sending() ? 'Calificando…' : 'Enviar intento' }}
-          </button>
-        }
-      </div>
+          <textarea
+            [id]="'field-' + field.key"
+            rows="2"
+            maxlength="800"
+            [placeholder]="placeholders[field.key] ?? ''"
+            [ngModel]="values()[field.key] ?? ''"
+            (ngModelChange)="setValue(field.key, $event)"
+          ></textarea>
 
-      @if (showTemplate()) {
-        <div class="key template">
-          <pre>{{ template() }}</pre>
-          <button class="btn" (click)="useTemplate()">Usar como base</button>
+          <!-- Lo que pide la misión en este campo -->
+          @if (res?.requirements?.length) {
+            <ul class="chips">
+              @for (req of res!.requirements; track req.label) {
+                <li [class.ok]="req.ok">{{ req.ok ? '✓' : '○' }} {{ req.label }}</li>
+              }
+            </ul>
+          } @else if (missionRequirements(field.key).length) {
+            <ul class="chips">
+              @for (req of missionRequirements(field.key); track req) {
+                <li>○ {{ req }}</li>
+              }
+            </ul>
+          }
+
+          @if (res && (values()[field.key] ?? '').trim()) {
+            <p class="field-feedback">{{ res.feedback }}</p>
+          }
         </div>
       }
 
       @if (error()) {
         <p class="form-error" role="alert">{{ error() }}</p>
       }
+
+      <div class="row-between editor-actions">
+        <button class="text-button" [disabled]="!hasText()" (click)="clear()">Borrar todo</button>
+        @if (mission()) {
+          <button class="btn primary" [disabled]="sending() || !hasText()" (click)="submit()">
+            {{ sending() ? 'Calificando…' : 'Enviar intento' }}
+          </button>
+        }
+      </div>
     </article>
 
     <!-- Resultado del intento enviado -->
@@ -102,13 +129,13 @@
             ✓ ¡Misión aprobada en el intento {{ attempt.attemptNo }}!
           } @else {
             Intento {{ attempt.attemptNo }}: {{ attempt.score }} puntos. Necesitas
-            {{ mission()?.passingScore }}. Revisa los criterios y vuelve a intentarlo.
+            {{ mission()?.passingScore }}. Corrige los campos marcados y vuelve a intentarlo.
           }
         </b>
       </article>
     }
 
-    <!-- Evaluación -->
+    <!-- Resumen -->
     @if (evaluation(); as ev) {
       <article class="panel evaluation" [class.updating]="evaluating()">
         <div class="score-row">
@@ -122,8 +149,11 @@
           <div>
             <div class="eyebrow">
               RÚBRICA {{ ev.rubric === 'avanzada' ? 'AVANZADA' : 'BÁSICA' }} · {{ ev.words }} PALABRAS
+              @if (ev.requirementsTotal) {
+                · MISIÓN {{ ev.requirementsMet }}/{{ ev.requirementsTotal }}
+              }
             </div>
-            <p class="ev-message">{{ ev.message }}</p>
+            <p class="ev-message" [class.off-topic]="ev.offTopic">{{ ev.message }}</p>
           </div>
         </div>
 
@@ -134,25 +164,30 @@
           </div>
         }
 
-        <ul class="criteria">
-          @for (c of ev.criteria; track c.key) {
-            <li [class]="'criterion ' + c.level">
-              <span class="criterion-icon">{{ levelIcon(c.level) }}</span>
-              <div>
-                <div class="row-between">
-                  <b>{{ c.label }}</b>
-                  <span>{{ c.points }} / {{ c.weight }}</span>
-                </div>
-                <div class="bar"><i [style.width.%]="(c.points / c.weight) * 100"></i></div>
-                <small>{{ c.feedback }}</small>
+        @for (c of extraCriteria(); track c.key) {
+          <div [class]="'criterion ' + c.level">
+            <span class="criterion-icon">{{ levelIcon(c.level) }}</span>
+            <div>
+              <div class="row-between">
+                <b>{{ c.label }}</b>
+                <span>{{ c.points }} / {{ c.weight }}</span>
               </div>
-            </li>
-          }
-        </ul>
-      </article>
-    } @else {
-      <article class="panel evaluation empty">
-        <p>Empieza a escribir y verás aquí la evaluación de tu prompt.</p>
+              <small>{{ c.feedback }}</small>
+            </div>
+          </div>
+        }
+
+        @if (ev.composed) {
+          <div class="composed">
+            <div class="row-between">
+              <b>Tu prompt completo</b>
+              <button class="text-button" (click)="copyPrompt()">
+                {{ copied() ? '✓ Copiado' : 'Copiar' }}
+              </button>
+            </div>
+            <pre>{{ ev.composed }}</pre>
+          </div>
+        }
       </article>
     }
 
@@ -172,8 +207,13 @@
           <ol>
             @for (a of m.attempts; track a.attemptNo) {
               <li [class.ok]="a.passed">
-                <span>Intento {{ a.attemptNo }}</span>
-                <b>{{ a.score }} pts {{ a.passed ? '✓' : '' }}</b>
+                <span>
+                  Intento {{ a.attemptNo }}
+                  @if (a.reviewedScore !== null) {
+                    <small>· revisado por tu docente{{ a.reviewNote ? ': ' + a.reviewNote : '' }}</small>
+                  }
+                </span>
+                <b>{{ a.reviewedScore ?? a.score }} pts {{ a.passed ? '✓' : '' }}</b>
               </li>
             }
           </ol>

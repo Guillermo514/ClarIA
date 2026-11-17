@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { authGuard, guestGuard } from './core/auth/auth.guards';
+import { authGuard, guestGuard, staffGuard } from './core/auth/auth.guards';
 
 export const routes: Routes = [
   // --- Páginas públicas -----------------------------------------------------
@@ -89,6 +89,13 @@ export const routes: Routes = [
             (m) => m.PromptEvaluatorPage,
           ),
         title: 'Evaluador de IA · ClarIA',
+      },
+      {
+        path: 'evaluador/revision',
+        canActivate: [staffGuard],
+        loadComponent: () =>
+          import('./features/prompt-review/prompt-review.page').then((m) => m.PromptReviewPage),
+        title: 'Revisión de intentos · ClarIA',
       },
       // El detector de alucinaciones fue reemplazado por el evaluador.
       { path: 'detector', redirectTo: 'evaluador' },
