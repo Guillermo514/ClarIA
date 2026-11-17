@@ -31,8 +31,28 @@ export class LessonPage {
   protected readonly gamesPending = computed(
     () => this.lesson()?.activities.some((a) => !a.completed) ?? false,
   );
+  protected readonly cardsPending = computed(() => {
+    const lesson = this.lesson();
+    return lesson ? lesson.cardsSeen < lesson.cardsTotal : false;
+  });
+  protected readonly articlePending = computed(() => !(this.lesson()?.articleRead ?? true));
+  /** Lo que falta para completar la lección, p. ej. «Lectura 0:42 · Lee el artículo». */
+  protected readonly pendingLabel = computed(() =>
+    [
+      this.countdown.remaining() > 0 ? `Lectura ${this.countdown.label()}` : null,
+      this.gamesPending() ? 'Termina el juego' : null,
+      this.cardsPending() ? 'Voltea las flashcards' : null,
+      this.articlePending() ? 'Lee el artículo' : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  );
   protected readonly canComplete = computed(
-    () => this.countdown.remaining() <= 0 && !this.gamesPending(),
+    () =>
+      this.countdown.remaining() <= 0 &&
+      !this.gamesPending() &&
+      !this.cardsPending() &&
+      !this.articlePending(),
   );
 
   protected readonly next = computed(() => {

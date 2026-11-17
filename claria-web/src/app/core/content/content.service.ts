@@ -158,25 +158,33 @@ export class ContentService {
   }
 
   async getLesson(code: string): Promise<LessonDetail | null> {
-    const [{ data, error }, completed, finishedGames] = await Promise.all([
+    const [{ data, error }, completed, finishedGames, readArticles] = await Promise.all([
       this.supabase
         .from('lessons')
         .select(
           `id, code, title, content, sort_order, duration_min, type, course_id,
            courses(level_number, title),
            lesson_activities(id, title, embed_url, sort_order),
-           articles(title, article_sources(sources(citation, url)))`,
+           articles(id, title, article_sources(sources(citation, url))),
+           flashcards(id)`,
         )
         .eq('code', code)
         .maybeSingle(),
       this.completedLessonIds(),
       this.completedActivityIds(),
+      this.readArticleIds(),
     ]);
     if (error) throw error;
     if (!data) return null;
 
     const course = data.courses as unknown as { level_number: number; title: string };
-    const articles = data.articles as unknown as { title: string; article_sources: SourceRow[] }[];
+    const articles = data.articles as unknown as {
+      id: string;
+      title: string;
+      article_sources: SourceRow[];
+    }[];
+    const cardIds = ((data.flashcards ?? []) as { id: string }[]).map((c) => c.id);
+    const { seenIds } = await this.getCardStates(cardIds);
     const activities = [...(data.lesson_activities ?? [])].sort(
       (a, b) => a.sort_order - b.sort_order,
     );
@@ -199,7 +207,11 @@ export class ContentService {
         embedUrl: a.embed_url,
         completed: finishedGames.has(a.id),
       })),
+      articleId: articles[0]?.id ?? null,
       articleTitle: articles[0]?.title ?? null,
+      articleRead: articles[0] ? readArticles.has(articles[0].id) : true,
+      cardsTotal: cardIds.length,
+      cardsSeen: seenIds.length,
       source: firstSource(articles[0]?.article_sources),
     };
   }
@@ -209,7 +221,7 @@ export class ContentService {
     return this.timedStart('start_lesson', { p_lesson_id: lessonId });
   }
 
-  /** El servidor verifica el tiempo mínimo de lectura y que el juego esté terminado. */
+  /** El servidor verifica el tiempo de lectura, el juego, las flashcards y el artículo. */
   async completeLesson(lessonId: string): Promise<void> {
     const { error } = await this.supabase.rpc('complete_lesson', { p_lesson_id: lessonId });
     if (error) throw friendly(error);
@@ -233,6 +245,7 @@ export class ContentService {
 
   async getArticles(courseIds: string[]): Promise<Article[]> {
     if (!courseIds.length) return [];
+    const read = await this.readArticleIds();
     const { data, error } = await this.supabase
       .from('articles')
       .select(
@@ -262,11 +275,22 @@ export class ContentService {
           lessonTitle: lesson.title,
           levelNumber: lesson.courses.level_number,
           source: firstSource(row.article_sources as unknown as SourceRow[]),
+          read: read.has(row.id),
           order: lesson.courses.level_number * 100 + lesson.sort_order,
         };
       })
       .sort((a, b) => a.order - b.order)
       .map(({ order: _order, ...article }) => article);
+  }
+
+  /** Al abrir el artículo: empieza a contar el tiempo mínimo de lectura. */
+  async startArticle(articleId: string): Promise<TimedStart> {
+    return this.timedStart('start_article', { p_article_id: articleId });
+  }
+
+  async completeArticle(articleId: string): Promise<void> {
+    const { error } = await this.supabase.rpc('complete_article', { p_article_id: articleId });
+    if (error) throw friendly(error);
   }
 
   // --- Flashcards -----------------------------------------------------------
@@ -401,6 +425,14 @@ export class ContentService {
     if (error) throw friendly(error);
     const raw = data as { completed: boolean; seconds_remaining: number };
     return { completed: raw.completed, secondsRemaining: raw.seconds_remaining };
+  }
+
+  private async readArticleIds(): Promise<Set<string>> {
+    const { data } = await this.supabase
+      .from('article_progress')
+      .select('article_id')
+      .not('completed_at', 'is', null);
+    return new Set((data ?? []).map((row) => row.article_id));
   }
 
   private async completedActivityIds(): Promise<Set<string>> {

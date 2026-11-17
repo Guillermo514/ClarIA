@@ -310,3 +310,12 @@
   justify-items: center;
   gap: 4px;
 }
+
+.resource small {
+  color: #f0a43a;
+  font-weight: 700;
+}
+
+.resource small.done {
+  color: #10c98f;
+}

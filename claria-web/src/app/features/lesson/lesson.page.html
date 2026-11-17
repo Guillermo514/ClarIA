@@ -54,6 +54,9 @@
           >
             <span class="eyebrow">FLASHCARDS DEL NIVEL {{ lesson.levelNumber }} →</span>
             <b>Repasa las tarjetas de esta lección</b>
+            <small [class.done]="!cardsPending()">
+              {{ cardsPending() ? 'Volteadas ' + lesson.cardsSeen + ' de ' + lesson.cardsTotal : '✓ Tarjetas volteadas' }}
+            </small>
           </a>
           @if (lesson.articleTitle) {
             <a
@@ -63,6 +66,9 @@
             >
               <span class="eyebrow">ARTÍCULO DE LA LECCIÓN →</span>
               <b>{{ lesson.articleTitle }}</b>
+              <small [class.done]="lesson.articleRead">
+                {{ lesson.articleRead ? '✓ Leído' : 'Pendiente de leer (1 min)' }}
+              </small>
             </a>
           }
         </section>
@@ -87,10 +93,8 @@
               <button class="btn primary" [disabled]="saving() || !canComplete()" (click)="complete()">
                 {{ saving() ? 'Guardando…' : '✓ Marcar como completada' }}
               </button>
-              @if (countdown.remaining() > 0) {
-                <small class="lesson-timer">Disponible en {{ countdown.label() }}</small>
-              } @else if (gamesPending()) {
-                <small class="lesson-timer">Primero termina el juego</small>
+              @if (!canComplete()) {
+                <small class="lesson-timer">{{ pendingLabel() }}</small>
               }
             </span>
           }

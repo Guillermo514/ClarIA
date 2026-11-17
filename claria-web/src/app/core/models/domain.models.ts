@@ -87,7 +87,12 @@ export interface LessonDetail extends LessonSummary {
   levelNumber: number;
   levelTitle: string;
   activities: LessonActivity[];
+  articleId: string | null;
   articleTitle: string | null;
+  /** true si ya lo marcó como leído (o si la lección no tiene artículo). */
+  articleRead: boolean;
+  cardsTotal: number;
+  cardsSeen: number;
   source: SourceLink | null;
 }
 
@@ -104,6 +109,7 @@ export interface Article {
   lessonTitle: string;
   levelNumber: number;
   source: SourceLink | null;
+  read: boolean;
 }
 
 /** Estado de las tarjetas del estudiante en un nivel. */
