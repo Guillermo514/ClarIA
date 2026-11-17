@@ -1,0 +1,189 @@
+<div class="page-head">
+  <div class="eyebrow">▦ LABORATORIO DE PROMPTS</div>
+  <h1>Evaluador de IA</h1>
+  <p>
+    Escribe un prompt y descubre qué tan claro es para una IA. Se califica con los 5 ingredientes
+    de un buen prompt: rol, contexto, tarea, formato y ejemplo.
+  </p>
+</div>
+
+<section class="evaluator">
+  <!-- Misiones y modo libre -->
+  <aside class="missions">
+    <div class="eyebrow">MISIONES</div>
+    @for (m of missions(); track m.id) {
+      <button class="panel mission" [class.selected]="selectedId() === m.id" (click)="select(m.id)">
+        <span class="mission-head">
+          <b>{{ m.title }}</b>
+          @if (m.passed) {
+            <span class="mission-ok">✓</span>
+          }
+        </span>
+        <small>
+          @if (m.lessonCode) {
+            Obligatoria · Lección {{ m.lessonCode }} ·
+          }
+          {{ m.attempts.length ? 'Mejor: ' + m.bestScore + ' pts' : 'Sin intentos' }}
+        </small>
+      </button>
+    } @empty {
+      @if (!loading()) {
+        <p class="loading">Aún no hay misiones para tu grupo de edad.</p>
+      }
+    }
+    <button class="panel mission" [class.selected]="selectedId() === null" (click)="select(null)">
+      <span class="mission-head"><b>✎ Modo libre</b></span>
+      <small>Evalúa cualquier prompt; no se guarda.</small>
+    </button>
+  </aside>
+
+  <div class="evaluator-main">
+    <!-- Objetivo -->
+    @if (mission(); as m) {
+      <article class="panel mission-goal">
+        <div class="eyebrow">
+          MISIÓN
+          @if (m.lessonCode) {
+            · OBLIGATORIA EN LA LECCIÓN {{ m.lessonCode }}
+          }
+        </div>
+        <h2>{{ m.title }}</h2>
+        <p>{{ m.goal }}</p>
+        <small>Logra {{ m.passingScore }} puntos o más. Meta: hacerlo en 3 intentos o menos.</small>
+      </article>
+    }
+
+    <!-- Editor -->
+    <article class="panel prompt-editor">
+      <div class="row-between">
+        <label for="prompt-input"><b>Tu prompt</b></label>
+        <span class="counter">{{ text().length }} / {{ maxLength }}</span>
+      </div>
+      <textarea
+        id="prompt-input"
+        [maxlength]="maxLength"
+        placeholder="Escribe aquí la instrucción que le darías a la IA…"
+        [ngModel]="text()"
+        (ngModelChange)="onTextChange($event)"
+      ></textarea>
+
+      <div class="row-between editor-actions">
+        <button class="text-button" (click)="showTemplate.set(!showTemplate())">
+          {{ showTemplate() ? 'Ocultar estructura' : 'Ver estructura sugerida' }}
+        </button>
+        @if (mission()) {
+          <button
+            class="btn primary"
+            [disabled]="sending() || text().trim().length < 5"
+            (click)="submit()"
+          >
+            {{ sending() ? 'Calificando…' : 'Enviar intento' }}
+          </button>
+        }
+      </div>
+
+      @if (showTemplate()) {
+        <div class="key template">
+          <pre>{{ template() }}</pre>
+          <button class="btn" (click)="useTemplate()">Usar como base</button>
+        </div>
+      }
+
+      @if (error()) {
+        <p class="form-error" role="alert">{{ error() }}</p>
+      }
+    </article>
+
+    <!-- Resultado del intento enviado -->
+    @if (lastAttempt(); as attempt) {
+      <article class="panel attempt-result" [class.ok]="attempt.passed">
+        <b>
+          @if (attempt.passed) {
+            ✓ ¡Misión aprobada en el intento {{ attempt.attemptNo }}!
+          } @else {
+            Intento {{ attempt.attemptNo }}: {{ attempt.score }} puntos. Necesitas
+            {{ mission()?.passingScore }}. Revisa los criterios y vuelve a intentarlo.
+          }
+        </b>
+      </article>
+    }
+
+    <!-- Evaluación -->
+    @if (evaluation(); as ev) {
+      <article class="panel evaluation" [class.updating]="evaluating()">
+        <div class="score-row">
+          <div class="score-ring" [style.--percent]="ev.score" aria-hidden="true">
+            <svg viewBox="0 0 120 120">
+              <circle class="ring-track" cx="60" cy="60" r="52" pathLength="100" />
+              <circle class="ring-fill" cx="60" cy="60" r="52" pathLength="100" />
+            </svg>
+            <strong>{{ ev.score }}</strong>
+          </div>
+          <div>
+            <div class="eyebrow">
+              RÚBRICA {{ ev.rubric === 'avanzada' ? 'AVANZADA' : 'BÁSICA' }} · {{ ev.words }} PALABRAS
+            </div>
+            <p class="ev-message">{{ ev.message }}</p>
+          </div>
+        </div>
+
+        @for (p of ev.penalties; track p.label) {
+          <div class="penalty">
+            <b>⚠ {{ p.label }} (−{{ p.points }} pts)</b>
+            <span>{{ p.tip }}</span>
+          </div>
+        }
+
+        <ul class="criteria">
+          @for (c of ev.criteria; track c.key) {
+            <li [class]="'criterion ' + c.level">
+              <span class="criterion-icon">{{ levelIcon(c.level) }}</span>
+              <div>
+                <div class="row-between">
+                  <b>{{ c.label }}</b>
+                  <span>{{ c.points }} / {{ c.weight }}</span>
+                </div>
+                <div class="bar"><i [style.width.%]="(c.points / c.weight) * 100"></i></div>
+                <small>{{ c.feedback }}</small>
+              </div>
+            </li>
+          }
+        </ul>
+      </article>
+    } @else {
+      <article class="panel evaluation empty">
+        <p>Empieza a escribir y verás aquí la evaluación de tu prompt.</p>
+      </article>
+    }
+
+    <!-- Historial de la misión -->
+    @if (mission(); as m) {
+      @if (m.attempts.length) {
+        <article class="panel history">
+          <div class="row-between">
+            <b>Tus intentos</b>
+            @if (improvement(); as imp) {
+              <span class="improvement">
+                Primer intento {{ imp.first }} → mejor {{ imp.best }}
+                ({{ imp.diff >= 0 ? '+' : '' }}{{ imp.diff }})
+              </span>
+            }
+          </div>
+          <ol>
+            @for (a of m.attempts; track a.attemptNo) {
+              <li [class.ok]="a.passed">
+                <span>Intento {{ a.attemptNo }}</span>
+                <b>{{ a.score }} pts {{ a.passed ? '✓' : '' }}</b>
+              </li>
+            }
+          </ol>
+          @if (m.lessonCode && m.levelNumber) {
+            <a [routerLink]="['/cursos', m.levelNumber, 'leccion', m.lessonCode]">
+              Volver a la lección {{ m.lessonCode }} →
+            </a>
+          }
+        </article>
+      }
+    }
+  </div>
+</section>

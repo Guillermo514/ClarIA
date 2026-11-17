@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
+import { AuthService } from '../../core/auth/auth.service';
 import { ContentError, ContentService } from '../../core/content/content.service';
 import { createCountdown } from '../../core/content/countdown';
 import { LessonDetail, LessonSummary } from '../../core/models/domain.models';
@@ -36,6 +37,10 @@ export class LessonPage {
     return lesson ? lesson.cardsSeen < lesson.cardsTotal : false;
   });
   protected readonly articlePending = computed(() => !(this.lesson()?.articleRead ?? true));
+  protected readonly missionPending = computed(() => {
+    const mission = this.lesson()?.mission;
+    return mission ? !mission.passed : false;
+  });
   /** Lo que falta para completar la lección, p. ej. «Lectura 0:42 · Lee el artículo». */
   protected readonly pendingLabel = computed(() =>
     [
@@ -43,16 +48,21 @@ export class LessonPage {
       this.gamesPending() ? 'Termina el juego' : null,
       this.cardsPending() ? 'Voltea las flashcards' : null,
       this.articlePending() ? 'Lee el artículo' : null,
+      this.missionPending() ? 'Aprueba la misión del evaluador' : null,
     ]
       .filter(Boolean)
       .join(' · '),
   );
+  /** Docentes y administradores no tienen requisitos (igual que en el servidor). */
+  private readonly isStaff = inject(AuthService).isStaff;
   protected readonly canComplete = computed(
     () =>
-      this.countdown.remaining() <= 0 &&
-      !this.gamesPending() &&
-      !this.cardsPending() &&
-      !this.articlePending(),
+      this.isStaff() ||
+      (this.countdown.remaining() <= 0 &&
+        !this.gamesPending() &&
+        !this.cardsPending() &&
+        !this.articlePending() &&
+        !this.missionPending()),
   );
 
   protected readonly next = computed(() => {

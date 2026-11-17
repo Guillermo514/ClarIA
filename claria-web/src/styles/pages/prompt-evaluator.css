@@ -1,0 +1,281 @@
+/* ==========================================================================
+   Página: Evaluador de IA (prompts)
+   ========================================================================== */
+
+.evaluator {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+/* --- Misiones ----------------------------------------------------------- */
+
+.missions {
+  display: grid;
+  gap: 10px;
+}
+
+.mission {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 14px 16px;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.mission:hover,
+.mission.selected {
+  border-color: var(--brand);
+}
+
+.mission.selected {
+  background: var(--brand-tint);
+}
+
+.mission-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mission small {
+  color: var(--ink-subtle);
+}
+
+.mission-ok {
+  color: #10c98f;
+  font-weight: 800;
+}
+
+/* --- Columna principal -------------------------------------------------- */
+
+.evaluator-main {
+  display: grid;
+  gap: 16px;
+}
+
+.mission-goal,
+.prompt-editor,
+.evaluation,
+.history,
+.attempt-result {
+  padding: 22px;
+}
+
+.mission-goal h2 {
+  margin: 8px 0;
+}
+
+.mission-goal small {
+  color: var(--ink-subtle);
+}
+
+.prompt-editor textarea {
+  display: block;
+  width: 100%;
+  min-height: 170px;
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.counter {
+  color: var(--ink-subtle);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.editor-actions {
+  margin-top: 12px;
+}
+
+.template pre {
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+  font: inherit;
+}
+
+.attempt-result {
+  border-color: #f0a43a;
+}
+
+.attempt-result.ok {
+  border-color: #10c98f;
+  color: #10c98f;
+}
+
+/* --- Evaluación --------------------------------------------------------- */
+
+.evaluation {
+  transition: opacity 0.2s;
+}
+
+.evaluation.updating {
+  opacity: 0.6;
+}
+
+.evaluation.empty p {
+  margin: 0;
+  color: var(--ink-subtle);
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.score-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 104px;
+  height: 104px;
+}
+
+.score-ring svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.score-ring circle {
+  fill: none;
+  stroke-width: 10;
+}
+
+.score-ring .ring-fill {
+  stroke: var(--brand);
+  stroke-linecap: round;
+  stroke-dasharray: var(--percent) 100;
+  transition: stroke-dasharray 0.5s ease-out;
+}
+
+.score-ring .ring-track {
+  stroke: var(--line);
+}
+
+.score-ring strong {
+  font-size: 30px;
+}
+
+.ev-message {
+  margin: 6px 0 0;
+}
+
+.penalty {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-left: 4px solid #f0566a;
+  border-radius: 10px;
+  background: rgb(240 86 106 / 12%);
+}
+
+.criteria {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.criterion {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.criterion-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 800;
+}
+
+.criterion.strong .criterion-icon {
+  background: rgb(16 201 143 / 15%);
+  color: #10c98f;
+}
+
+.criterion.partial .criterion-icon {
+  background: rgb(240 164 58 / 15%);
+  color: #f0a43a;
+}
+
+.criterion.missing .criterion-icon {
+  background: rgb(240 86 106 / 15%);
+  color: #f0566a;
+}
+
+.criterion .bar {
+  margin: 6px 0;
+}
+
+.criterion small {
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+/* --- Historial ---------------------------------------------------------- */
+
+.history ol {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history li {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-muted);
+}
+
+.history li.ok b {
+  color: #10c98f;
+}
+
+.improvement {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.history a {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+/* --- Responsive --------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .evaluator {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .missions {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .score-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -17,7 +17,7 @@ export const TOP_NAV_LINKS: readonly NavLink[] = [
   { path: '/inicio', label: 'Inicio' },
   { path: '/cursos', label: 'Cursos' },
   { path: '/tokenizador', label: 'Tokenizador' },
-  { path: '/detector', label: 'Detector de Alucinaciones' },
+  { path: '/evaluador', label: 'Evaluador de IA' },
   { path: '/flashcards', label: 'Flashcards' },
 ];
 
@@ -38,7 +38,7 @@ export const SIDEBAR_SECTIONS: readonly NavSection[] = [
       { path: '/flashcards', icon: '▱', label: 'Flashcards' },
       { path: '/articulos', icon: '▤', label: 'Artículos' },
       { path: '/tokenizador', icon: '₀₁', label: 'Tokenizador' },
-      { path: '/detector', icon: '▦', label: 'Evaluador de IA' },
+      { path: '/evaluador', icon: '▦', label: 'Evaluador de IA' },
     ],
   },
 ];

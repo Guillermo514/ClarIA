@@ -93,6 +93,8 @@ export interface LessonDetail extends LessonSummary {
   articleRead: boolean;
   cardsTotal: number;
   cardsSeen: number;
+  /** Misión del evaluador obligatoria en esta lección (5.4 y 7.1). */
+  mission: { id: string; title: string; passed: boolean } | null;
   source: SourceLink | null;
 }
 
@@ -160,4 +162,53 @@ export interface QuizResult {
   passingScore: number;
   results: { questionId: string; correct: boolean; correctOptionIds: string[] }[];
   newMedal: { name: string; icon: string | null } | null;
+}
+
+// --- Evaluador de prompts ------------------------------------------------
+
+export type CriterionLevel = 'strong' | 'partial' | 'missing';
+
+/** Resultado de evaluate_prompt() / submit_prompt_attempt(). */
+export interface PromptEvaluation {
+  score: number;
+  rubric: 'basica' | 'avanzada';
+  words: number;
+  criteria: {
+    key: string;
+    label: string;
+    description: string;
+    weight: number;
+    points: number;
+    level: CriterionLevel;
+    feedback: string;
+  }[];
+  penalties: { label: string; points: number; tip: string }[];
+  message: string;
+  /** Solo al enviar un intento de misión. */
+  attemptNo?: number;
+  passed?: boolean;
+}
+
+export interface MissionAttempt {
+  attemptNo: number;
+  score: number;
+  passed: boolean;
+  promptText: string;
+  createdAt: string;
+}
+
+/** Misión del evaluador (tabla scenarios). */
+export interface Mission {
+  id: string;
+  title: string;
+  goal: string;
+  passingScore: number;
+  ageGroupCode: string;
+  ageGroupName: string;
+  /** Lección en la que es obligatoria (p. ej. "5.4"), si aplica. */
+  lessonCode: string | null;
+  levelNumber: number | null;
+  attempts: MissionAttempt[];
+  passed: boolean;
+  bestScore: number | null;
 }

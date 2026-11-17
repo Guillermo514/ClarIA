@@ -319,3 +319,8 @@
 .resource small.done {
   color: #10c98f;
 }
+
+.mission-resource {
+  margin-top: 18px;
+  border-color: var(--brand);
+}

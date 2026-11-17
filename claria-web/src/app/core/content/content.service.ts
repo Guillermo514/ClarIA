@@ -10,6 +10,8 @@ import {
   LessonDetail,
   LessonSummary,
   LevelSummary,
+  Mission,
+  PromptEvaluation,
   Quiz,
   QuizAnswer,
   QuizResult,
@@ -166,7 +168,8 @@ export class ContentService {
            courses(level_number, title),
            lesson_activities(id, title, embed_url, sort_order),
            articles(id, title, article_sources(sources(citation, url))),
-           flashcards(id)`,
+           flashcards(id),
+           scenarios(id, title, is_published)`,
         )
         .eq('code', code)
         .maybeSingle(),
@@ -185,6 +188,19 @@ export class ContentService {
     }[];
     const cardIds = ((data.flashcards ?? []) as { id: string }[]).map((c) => c.id);
     const { seenIds } = await this.getCardStates(cardIds);
+    const scenario = (
+      (data.scenarios ?? []) as { id: string; title: string; is_published: boolean }[]
+    ).find((s) => s.is_published);
+    let missionPassed = false;
+    if (scenario) {
+      const { data: passed } = await this.supabase
+        .from('prompt_attempts')
+        .select('id')
+        .eq('scenario_id', scenario.id)
+        .eq('passed', true)
+        .limit(1);
+      missionPassed = (passed ?? []).length > 0;
+    }
     const activities = [...(data.lesson_activities ?? [])].sort(
       (a, b) => a.sort_order - b.sort_order,
     );
@@ -212,6 +228,7 @@ export class ContentService {
       articleRead: articles[0] ? readArticles.has(articles[0].id) : true,
       cardsTotal: cardIds.length,
       cardsSeen: seenIds.length,
+      mission: scenario ? { id: scenario.id, title: scenario.title, passed: missionPassed } : null,
       source: firstSource(articles[0]?.article_sources),
     };
   }
@@ -416,6 +433,94 @@ export class ContentService {
       })),
       newMedal: raw.new_medal,
     };
+  }
+
+  // --- Evaluador de prompts -------------------------------------------------
+
+  /**
+   * Misiones del evaluador con los intentos del usuario. Estudiantes: solo las de su
+   * grupo de edad; docentes y administradores: todas.
+   */
+  async getMissions(): Promise<Mission[]> {
+    const levels = await this.ensureLevels();
+    const isStaff = this.auth.isStaff();
+    const myGroup = levels[0]?.ageGroupCode;
+
+    const [{ data, error }, { data: attempts }] = await Promise.all([
+      this.supabase
+        .from('scenarios')
+        .select(
+          `id, title, goal, passing_score, sort_order,
+           age_groups(code, name, sort_order),
+           lessons(code, courses(level_number))`,
+        )
+        .eq('is_published', true),
+      this.supabase
+        .from('prompt_attempts')
+        .select('scenario_id, score, attempt_no, passed, prompt_text, created_at')
+        .order('attempt_no'),
+    ]);
+    if (error) throw error;
+
+    return (data ?? [])
+      .map((row) => {
+        const group = row.age_groups as unknown as {
+          code: string;
+          name: string;
+          sort_order: number;
+        };
+        const lesson = row.lessons as unknown as {
+          code: string;
+          courses: { level_number: number };
+        } | null;
+        const mine = (attempts ?? [])
+          .filter((a) => a.scenario_id === row.id)
+          .map((a) => ({
+            attemptNo: a.attempt_no,
+            score: a.score,
+            passed: a.passed,
+            promptText: a.prompt_text,
+            createdAt: a.created_at,
+          }));
+        return {
+          id: row.id,
+          title: row.title,
+          goal: row.goal,
+          passingScore: row.passing_score,
+          ageGroupCode: group.code,
+          ageGroupName: group.name,
+          lessonCode: lesson?.code ?? null,
+          levelNumber: lesson?.courses.level_number ?? null,
+          attempts: mine,
+          passed: mine.some((a) => a.passed),
+          bestScore: mine.length ? Math.max(...mine.map((a) => a.score)) : null,
+          order: group.sort_order * 100 + row.sort_order,
+        };
+      })
+      .filter((m) => isStaff || m.ageGroupCode === myGroup)
+      .sort((a, b) => a.order - b.order)
+      .map(({ order: _order, ...mission }) => mission);
+  }
+
+  /** Califica sin guardar (vista previa mientras escribe). */
+  async evaluatePrompt(text: string, missionId: string | null): Promise<PromptEvaluation> {
+    const { data, error } = await this.supabase.rpc('evaluate_prompt', {
+      p_text: text,
+      p_scenario_id: missionId,
+    });
+    if (error) throw friendly(error);
+    return data as PromptEvaluation;
+  }
+
+  /** Envía un intento de misión: el servidor califica y lo guarda. */
+  async submitPromptAttempt(missionId: string, text: string): Promise<PromptEvaluation> {
+    const { data, error } = await this.supabase.rpc('submit_prompt_attempt', {
+      p_scenario_id: missionId,
+      p_text: text,
+    });
+    if (error) throw friendly(error);
+    const raw = data as PromptEvaluation & { attempt_no: number };
+    return { ...raw, attemptNo: raw.attempt_no };
   }
 
   // --- Apoyo ----------------------------------------------------------------

@@ -83,11 +83,15 @@ export const routes: Routes = [
         title: 'Tokenizador · ClarIA',
       },
       {
-        path: 'detector',
+        path: 'evaluador',
         loadComponent: () =>
-          import('./features/hallucination-detector/detector.page').then((m) => m.DetectorPage),
-        title: 'Detector · ClarIA',
+          import('./features/prompt-evaluator/prompt-evaluator.page').then(
+            (m) => m.PromptEvaluatorPage,
+          ),
+        title: 'Evaluador de IA · ClarIA',
       },
+      // El detector de alucinaciones fue reemplazado por el evaluador.
+      { path: 'detector', redirectTo: 'evaluador' },
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
     ],
   },
