@@ -25,6 +25,7 @@ export class App implements OnInit {
   protected readonly loggedIn = this.auth.isLoggedIn;
   protected readonly displayName = this.auth.displayName;
   protected readonly initials = this.auth.initials;
+  protected readonly roleLabel = this.auth.roleLabel;
   protected readonly currentLevel = inject(ContentService).currentLevel;
 
   protected readonly topLinks = TOP_NAV_LINKS;

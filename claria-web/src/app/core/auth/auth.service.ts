@@ -31,6 +31,14 @@ export class AuthService {
   readonly session = signal<Session | null>(null);
   readonly profile = signal<Profile | null>(null);
   readonly isLoggedIn = computed(() => this.session() !== null);
+  /** Docentes y administradores ven todos los niveles desbloqueados. */
+  readonly isStaff = computed(() => ['admin', 'teacher'].includes(this.profile()?.role ?? ''));
+  readonly roleLabel = computed(
+    () =>
+      ({ admin: 'Administrador', teacher: 'Docente', student: null })[
+        this.profile()?.role ?? 'student'
+      ],
+  );
 
   readonly displayName = computed(() => this.profile()?.fullName ?? 'Estudiante');
   readonly initials = computed(() =>
