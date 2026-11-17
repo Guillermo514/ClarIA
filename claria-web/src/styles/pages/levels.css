@@ -1,0 +1,247 @@
+/* ==========================================================================
+   Páginas: Nivel y Lección
+   ========================================================================== */
+
+/* Nivel bloqueado en la lista de cursos */
+.course.locked {
+  opacity: 0.6;
+}
+
+/* --- Encabezado del nivel ----------------------------------------------- */
+
+.level-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.level-medal {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.level-medal small {
+  color: var(--ink-subtle);
+  font-weight: 700;
+}
+
+/* --- Lista de lecciones ------------------------------------------------- */
+
+.lesson-list {
+  display: grid;
+  gap: 12px;
+}
+
+.lesson-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 22px;
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    transform 0.2s ease-out,
+    border-color 0.2s ease-out;
+}
+
+.lesson-row:hover {
+  border-color: var(--brand);
+  transform: translateX(4px);
+}
+
+.lesson-code {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--brand-tint);
+  color: var(--brand);
+  font-weight: 800;
+}
+
+.lesson-row.done .lesson-code {
+  background: rgb(16 201 143 / 15%);
+  color: #10c98f;
+}
+
+.lesson-title {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+}
+
+.lesson-title small,
+.lesson-state {
+  color: var(--ink-subtle);
+  font-size: 13px;
+}
+
+.lesson-row.done .lesson-state {
+  color: #10c98f;
+  font-weight: 700;
+}
+
+.level-quiz {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 22px;
+  padding: 22px;
+  border-color: var(--brand);
+}
+
+/* --- Lección ------------------------------------------------------------ */
+
+.lesson {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.lesson-body {
+  padding: 32px;
+}
+
+.lesson-resources {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.resource {
+  display: grid;
+  gap: 8px;
+  padding: 18px 20px;
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+
+.resource:hover {
+  border-color: var(--brand);
+}
+
+.lesson-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.lesson-done {
+  color: #10c98f;
+  font-weight: 800;
+}
+
+/* --- Juego embebido ----------------------------------------------------- */
+
+.game {
+  margin-top: 18px;
+  padding: 22px;
+}
+
+.game-cover {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 22px;
+  border: 2px dashed var(--line);
+  border-radius: 16px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.game-cover:hover {
+  border-color: var(--brand);
+}
+
+.game-cover span:last-child {
+  display: grid;
+  gap: 4px;
+}
+
+.game-cover small {
+  color: var(--ink-subtle);
+}
+
+.game-play {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #032033;
+  font-size: 22px;
+}
+
+/* Proporción del juego original de Educaplay (795 × 690). */
+.game-frame {
+  position: relative;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 14px;
+  aspect-ratio: 795 / 690;
+  background: #fff;
+}
+
+.game-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.game-error {
+  color: var(--ink-subtle);
+}
+
+/* --- Responsive --------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .level-head {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+  }
+
+  .lesson-row {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .lesson-state {
+    display: none;
+  }
+
+  .lesson-body {
+    padding: 20px;
+  }
+
+  .lesson-resources {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .level-quiz,
+  .lesson-nav {
+    flex-wrap: wrap;
+  }
+
+  /* En pantallas angostas el juego necesita más alto que ancho. */
+  .game-frame {
+    aspect-ratio: 3 / 4;
+  }
+}

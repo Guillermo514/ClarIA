@@ -1,0 +1,41 @@
+<main [class.auth-page]="!loggedIn()">
+  <article class="panel privacy">
+    <div class="eyebrow">AVISO DE PRIVACIDAD · VERSIÓN {{ version }} (PRELIMINAR)</div>
+    <h1>¿Qué hacemos con tus datos?</h1>
+
+    <p class="privacy-note">
+      Este texto es un borrador del equipo de ClarIA y debe revisarse antes de usar la plataforma con
+      estudiantes reales.
+    </p>
+
+    <h2>Datos que guardamos</h2>
+    <ul>
+      <li>Tu nombre, fecha de nacimiento, escuela (opcional) y nivel escolar.</li>
+      <li>Tu correo electrónico, para iniciar sesión.</li>
+      <li>Tu avance: lecciones completadas, resultados de evaluaciones, flashcards y medallas.</li>
+    </ul>
+
+    <h2>Para qué los usamos</h2>
+    <ul>
+      <li>Mostrarte los niveles que corresponden a tu edad.</li>
+      <li>Guardar tu progreso y entregarte tus medallas.</li>
+    </ul>
+
+    <h2>Lo que no hacemos</h2>
+    <ul>
+      <li>No vendemos ni compartimos tus datos con otras empresas.</li>
+      <li>No usamos tus datos para publicidad.</li>
+      <li>Nadie más que tú puede ver tu progreso, salvo tus docentes dentro de ClarIA.</li>
+    </ul>
+
+    <h2>Menores de edad</h2>
+    <p>
+      Si tienes menos de 18 años, revisa este aviso con tu mamá, papá o tutor antes de crear tu
+      cuenta.
+    </p>
+
+    <a class="btn primary" [routerLink]="loggedIn() ? '/inicio' : '/registro'">
+      {{ loggedIn() ? 'Volver al inicio' : 'Volver al registro' }}
+    </a>
+  </article>
+</main>

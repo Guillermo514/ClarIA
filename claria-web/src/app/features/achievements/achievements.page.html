@@ -1,24 +1,27 @@
 <div class="page-head">
   <div class="eyebrow">♙ INSIGNIAS Y COMPETENCIAS</div>
   <h1>Mis Logros de Criterio</h1>
-  <p>
-    Insignias ganadas al contrastar fuentes, detectar alucinaciones y mantener tu voz crítica al
-    estudiar con IA.
-  </p>
+  <p>Cada nivel tiene su medalla. La ganas al aprobar la evaluación final del nivel.</p>
 </div>
 
+@if (error()) {
+  <p class="form-error" role="alert">{{ error() }}</p>
+}
+
 <section class="grid two">
-  @for (badge of badges; track badge.title; let i = $index) {
-    <article class="panel achievement" [class.locked]="!badge.earned" [style.--order]="i">
-      <div class="badge">{{ badge.icon }}</div>
+  @for (level of levels(); track level.id; let i = $index) {
+    <article class="panel achievement" [class.locked]="!level.medalEarned" [style.--order]="i">
+      <div class="badge badge-medal">
+        <app-medal [icon]="level.medalIcon" [earned]="level.medalEarned" />
+      </div>
       <div>
         <div class="row-between">
-          <h2>{{ badge.title }}</h2>
-          <span>{{ badge.date }}</span>
+          <h2>{{ level.medalName }}</h2>
+          <span>Nivel {{ level.levelNumber }}</span>
         </div>
-        <p>{{ badge.text }}</p>
-        <b [class.green]="badge.earned" [class.pending]="!badge.earned">
-          {{ badge.earned ? '✓ Competencia certificada' : 'Por desbloquear al finalizar el curso' }}
+        <p>{{ level.title }}</p>
+        <b [class.green]="level.medalEarned" [class.pending]="!level.medalEarned">
+          {{ level.medalEarned ? '✓ Medalla obtenida' : 'Aprueba la evaluación del nivel para ganarla' }}
         </b>
       </div>
     </article>

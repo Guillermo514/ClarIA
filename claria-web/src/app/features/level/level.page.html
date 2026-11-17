@@ -1,0 +1,76 @@
+@switch (state()) {
+  @case ('loading') {
+    <p class="loading">Cargando nivel…</p>
+  }
+  @case ('missing') {
+    <section class="panel notice">
+      <h2>Este nivel no está en tu ruta</h2>
+      <p>Revisa los niveles que corresponden a tu edad.</p>
+      <a class="btn primary" routerLink="/cursos">Ver mis niveles</a>
+    </section>
+  }
+  @case ('locked') {
+    <section class="panel notice">
+      <h2>🔒 Nivel {{ level()?.levelNumber }} bloqueado</h2>
+      <p>Aprueba la evaluación del nivel anterior para desbloquearlo.</p>
+      <a class="btn primary" routerLink="/cursos">Ver mis niveles</a>
+    </section>
+  }
+  @case ('ready') {
+    @if (level(); as level) {
+      <a class="crumb-link" routerLink="/cursos">‹ Mis cursos</a>
+
+      <div class="page-head level-head">
+        <div>
+          <div class="eyebrow">NIVEL {{ level.levelNumber }} · {{ level.ageGroupName }}</div>
+          <h1>{{ level.title }}</h1>
+          <p>{{ level.objective }}</p>
+        </div>
+        <div class="level-medal">
+          <app-medal [icon]="level.medalIcon" [earned]="level.medalEarned" />
+          <small>{{ level.medalName }}</small>
+        </div>
+      </div>
+
+      <section class="lesson-list">
+        @for (lesson of lessons(); track lesson.id) {
+          <a
+            class="panel lesson-row"
+            [class.done]="lesson.completed"
+            [routerLink]="['/cursos', level.levelNumber, 'leccion', lesson.code]"
+          >
+            <span class="lesson-code">{{ lesson.code }}</span>
+            <span class="lesson-title">
+              <b>{{ lesson.title }}</b>
+              <small>
+                @if (lesson.durationMin) {
+                  ◷ {{ lesson.durationMin }} min
+                }
+                @if (lesson.hasGame) {
+                  · 🎮 Con juego
+                }
+              </small>
+            </span>
+            <span class="lesson-state">{{ lesson.completed ? '✓ Completada' : 'Leer →' }}</span>
+          </a>
+        }
+      </section>
+
+      <section class="panel level-quiz">
+        <div>
+          <div class="eyebrow">EVALUACIÓN FINAL</div>
+          <b>
+            @if (level.passed) {
+              Aprobada con {{ level.bestScore }}%
+            } @else {
+              5 preguntas · aprueba con 70% para ganar tu medalla
+            }
+          </b>
+        </div>
+        <a class="btn primary" [routerLink]="['/evaluaciones', level.levelNumber]">
+          {{ level.passed ? 'Volver a presentarla' : 'Presentar evaluación' }}
+        </a>
+      </section>
+    }
+  }
+}

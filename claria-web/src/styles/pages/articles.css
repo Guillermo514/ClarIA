@@ -37,3 +37,16 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* --- Lector de artículos ------------------------------------------------ */
+
+.article-reader {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.article-reader .text-blocks {
+  margin: 18px 0;
+  font-size: 15px;
+}

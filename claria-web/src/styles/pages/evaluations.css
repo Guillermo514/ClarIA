@@ -290,3 +290,75 @@
     display: none;
   }
 }
+
+/* --- Lista de evaluaciones por nivel ------------------------------------ */
+
+.quiz-list {
+  display: grid;
+  gap: 12px;
+}
+
+.quiz-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 22px;
+}
+
+.quiz-row.locked {
+  opacity: 0.6;
+}
+
+.quiz-row-info {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+}
+
+.quiz-row-info small {
+  color: var(--ink-subtle);
+}
+
+/* --- Resultado y revisión ------------------------------------------------ */
+
+.new-medal {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 18px 0 6px;
+  animation: icon-pop 0.6s 1.2s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.new-medal b {
+  color: #10c98f;
+}
+
+.result-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.review {
+  margin-top: 22px;
+}
+
+.review h2 {
+  margin-top: 0;
+}
+
+.review-item {
+  margin-bottom: 22px;
+}
+
+.review .option {
+  cursor: default;
+}
+
+@media (max-width: 760px) {
+  .quiz-row {
+    padding: 14px;
+    gap: 12px;
+  }
+}

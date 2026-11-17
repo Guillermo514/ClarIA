@@ -1,9 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 
-import { MockDataService } from '../../core/services/mock-data.service';
-
-const DEFAULT_CATEGORY = 'Personal';
+import { ContentService } from '../../core/content/content.service';
+import { Flashcard, LevelSummary } from '../../core/models/domain.models';
 
 /** Distancia horizontal mínima (px) para que un deslizamiento cambie de tarjeta. */
 const SWIPE_THRESHOLD = 50;
@@ -11,29 +9,34 @@ const SWIPE_THRESHOLD = 50;
 /** Sentido del último cambio de tarjeta; define desde qué lado entra la nueva. */
 type CardDirection = 'next' | 'prev' | null;
 
-/** Repaso de tarjetas con volteo, marcado de dominadas y creación de tarjetas. */
+/**
+ * Repaso de las flashcards predeterminadas de cada nivel, con volteo y marcado
+ * de tarjetas dominadas (se guarda en la base de datos).
+ */
 @Component({
-  imports: [FormsModule],
   templateUrl: './flashcards.page.html',
   host: { '(document:keydown)': 'onKeydown($event)' },
 })
 export class FlashcardsPage {
-  private readonly data = inject(MockDataService);
+  private readonly content = inject(ContentService);
 
-  protected readonly cards = this.data.cards;
+  protected readonly unlockedLevels = computed(() =>
+    this.content.levels().filter((level) => level.unlocked),
+  );
+  protected readonly selectedLevel = signal<LevelSummary | null>(null);
+
+  protected readonly cards = signal<Flashcard[]>([]);
   protected readonly index = signal(0);
   protected readonly flipped = signal(false);
   protected readonly direction = signal<CardDirection>(null);
   protected readonly masteredIds = signal<string[]>([]);
-  protected readonly showCreate = signal(false);
+  protected readonly loading = signal(true);
+  protected readonly saving = signal(false);
+  protected readonly error = signal('');
 
-  // Campos del formulario de nueva tarjeta
-  protected newQuestion = '';
-  protected newAnswer = '';
-  protected newCategory = DEFAULT_CATEGORY;
-
-  protected readonly masteredPercent = computed(
-    () => (this.masteredIds().length / this.cards().length) * 100,
+  protected readonly card = computed(() => this.cards()[this.index()] ?? null);
+  protected readonly masteredPercent = computed(() =>
+    this.cards().length ? (this.masteredIds().length / this.cards().length) * 100 : 0,
   );
 
   /** Punto donde empezó el toque, para detectar el deslizamiento. */
@@ -41,16 +44,38 @@ export class FlashcardsPage {
   /** Evita que el clic que sigue a un deslizamiento voltee la tarjeta nueva. */
   private ignoreNextClick = false;
 
-  protected readonly card = computed(() => this.cards()[this.index() % this.cards().length]);
+  constructor() {
+    void this.init();
+  }
 
   protected isMastered(): boolean {
-    return this.masteredIds().includes(this.card().id);
+    const card = this.card();
+    return card ? this.masteredIds().includes(card.id) : false;
   }
 
   /** Texto inferior de cada cara; cada una conserva el suyo mientras la tarjeta gira. */
   protected statusLabel(face: 'front' | 'back'): string {
     if (this.isMastered()) return '✓ Tarjeta dominada';
     return face === 'back' ? 'Respuesta' : 'En proceso de aprendizaje';
+  }
+
+  protected async selectLevel(level: LevelSummary): Promise<void> {
+    this.selectedLevel.set(level);
+    this.loading.set(true);
+    this.error.set('');
+    this.cards.set([]);
+    try {
+      const cards = await this.content.getFlashcards(level.id);
+      this.masteredIds.set(await this.content.getMasteredCardIds(cards.map((c) => c.id)));
+      this.cards.set(cards);
+      this.index.set(0);
+      this.flipped.set(false);
+      this.direction.set(null);
+    } catch {
+      this.error.set('No pudimos cargar las tarjetas.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   protected flip(): void {
@@ -63,7 +88,7 @@ export class FlashcardsPage {
 
   /** Flechas ← → del teclado para cambiar de tarjeta (no mientras se escribe). */
   protected onKeydown(event: KeyboardEvent): void {
-    if (this.showCreate() || isTypingTarget(event.target)) return;
+    if (isTypingTarget(event.target)) return;
 
     if (event.key === 'ArrowRight') this.move(1);
     else if (event.key === 'ArrowLeft') this.move(-1);
@@ -90,32 +115,39 @@ export class FlashcardsPage {
     this.move(dx < 0 ? 1 : -1);
   }
 
-  protected markMastered(): void {
-    if (!this.isMastered()) this.masteredIds.update((ids) => [...ids, this.card().id]);
+  protected async markMastered(): Promise<void> {
+    const card = this.card();
+    if (!card || this.isMastered()) return;
+
+    this.saving.set(true);
+    try {
+      await this.content.setCardMastered(card.id);
+      this.masteredIds.update((ids) => [...ids, card.id]);
+    } catch {
+      this.error.set('No pudimos guardar la tarjeta. Inténtalo de nuevo.');
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   protected move(step: number): void {
     const total = this.cards().length;
+    if (!total) return;
     this.direction.set(step > 0 ? 'next' : 'prev');
     this.index.update((i) => (i + step + total) % total);
     this.flipped.set(false);
   }
 
-  protected create(): void {
-    if (!this.newQuestion.trim() || !this.newAnswer.trim()) return;
-
-    this.data.addCard(this.newQuestion, this.newAnswer, this.newCategory || DEFAULT_CATEGORY);
-    this.direction.set(null);
-    this.index.set(this.cards().length - 1);
-    this.flipped.set(false);
-    this.showCreate.set(false);
-    this.resetForm();
-  }
-
-  private resetForm(): void {
-    this.newQuestion = '';
-    this.newAnswer = '';
-    this.newCategory = DEFAULT_CATEGORY;
+  private async init(): Promise<void> {
+    try {
+      await this.content.ensureLevels();
+      const first = this.content.currentLevel() ?? this.unlockedLevels()[0];
+      if (first) await this.selectLevel(first);
+      else this.loading.set(false);
+    } catch {
+      this.error.set('No pudimos cargar tus niveles.');
+      this.loading.set(false);
+    }
   }
 }
 

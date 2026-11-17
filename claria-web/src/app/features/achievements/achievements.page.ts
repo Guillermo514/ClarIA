@@ -1,11 +1,20 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 
-import { MockDataService } from '../../core/services/mock-data.service';
+import { ContentService } from '../../core/content/content.service';
+import { MedalComponent } from '../../shared/components/medal/medal.component';
 
-/** Insignias obtenidas y pendientes del estudiante. */
+/** Medallas de los niveles del estudiante: obtenidas y por obtener. */
 @Component({
+  imports: [MedalComponent],
   templateUrl: './achievements.page.html',
 })
 export class AchievementsPage {
-  protected readonly badges = inject(MockDataService).badges;
+  private readonly content = inject(ContentService);
+
+  protected readonly levels = this.content.levels;
+  protected readonly error = signal('');
+
+  constructor() {
+    this.content.refreshLevels().catch(() => this.error.set('No pudimos cargar tus medallas.'));
+  }
 }

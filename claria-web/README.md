@@ -1,6 +1,9 @@
 # ClarIA 2.0 — prototipo web
 
-Prototipo responsive de la experiencia ClarIA, creado con Angular standalone, TypeScript estricto y Tailwind CSS. Las vistas reproducen la composición oscura de las referencias y usan contenido de demostración.
+Plataforma web de ClarIA, creada con Angular standalone y TypeScript estricto, conectada a Supabase (base de datos, cuentas y seguridad).
+
+- Conexión con Supabase: [docs/frontend-supabase.md](../docs/frontend-supabase.md)
+- Base de datos: [docs/base-de-datos.md](../docs/base-de-datos.md)
 
 ## Requisitos
 
