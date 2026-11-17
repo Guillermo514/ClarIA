@@ -9,7 +9,7 @@ import { SIDEBAR_SECTIONS, TOP_NAV_LINKS } from './core/navigation/navigation';
 const THEME_STORAGE_KEY = 'claria-theme';
 
 /**
- * Shell de la aplicación: barra superior, menú lateral y modal de auditoría.
+ * Shell de la aplicación: barra superior y menú lateral.
  * Sin sesión (ingreso, registro, aviso de privacidad) solo se muestra la página.
  * Los estilos viven en `src/styles/layout.css`.
  */
@@ -34,7 +34,6 @@ export class App implements OnInit {
   protected readonly sidebarOpen = signal(true);
   protected readonly dark = signal(true);
   protected readonly profileOpen = signal(false);
-  protected readonly auditOpen = signal(false);
 
   protected readonly themeLabel = computed(() =>
     this.dark() ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro',
