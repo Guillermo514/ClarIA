@@ -37,7 +37,13 @@
         </div>
 
         @for (activity of lesson.activities; track activity.id) {
-          <app-game-embed [url]="activity.embedUrl" [title]="activity.title" />
+          <app-game-embed
+            [activityId]="activity.id"
+            [url]="activity.embedUrl"
+            [title]="activity.title"
+            [completed]="activity.completed"
+            (completedChange)="markGameDone(activity.id)"
+          />
         }
 
         <section class="lesson-resources">
@@ -75,9 +81,16 @@
           @if (lesson.completed) {
             <span class="lesson-done">✓ Lección completada</span>
           } @else {
-            <button class="btn primary" [disabled]="saving()" (click)="complete()">
-              {{ saving() ? 'Guardando…' : '✓ Marcar como completada' }}
-            </button>
+            <span class="lesson-complete">
+              <button class="btn primary" [disabled]="saving() || !canComplete()" (click)="complete()">
+                {{ saving() ? 'Guardando…' : '✓ Marcar como completada' }}
+              </button>
+              @if (countdown.remaining() > 0) {
+                <small class="lesson-timer">Disponible en {{ countdown.label() }}</small>
+              } @else if (gamesPending()) {
+                <small class="lesson-timer">Primero termina el juego</small>
+              }
+            </span>
           }
 
           @if (next(); as nextLesson) {

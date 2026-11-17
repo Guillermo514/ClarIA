@@ -15,6 +15,16 @@
       <a class="btn primary" routerLink="/evaluaciones">Ver evaluaciones</a>
     </section>
   }
+  @case ('requirements') {
+    <a class="crumb-link" routerLink="/evaluaciones">‹ Evaluaciones</a>
+    <section class="notice">
+      <h2>Aún no puedes presentar esta evaluación</h2>
+      <p>Termina las lecciones, los juegos y las flashcards del Nivel {{ level()?.levelNumber }}.</p>
+    </section>
+    @if (level(); as lv) {
+      <app-level-requirements [level]="lv" />
+    }
+  }
   @case ('result') {
     @if (result(); as result) {
       <!-- Resultado final -->

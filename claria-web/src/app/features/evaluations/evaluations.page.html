@@ -21,6 +21,12 @@
         <small>
           @if (!level.unlocked) {
             🔒 Se desbloquea al aprobar el nivel anterior
+          } @else if (!level.quizReady) {
+            Completa el nivel: lecciones {{ level.lessonsCompleted }}/{{ level.lessonsTotal }}
+            @if (level.gamesTotal) {
+              · juegos {{ level.gamesCompleted }}/{{ level.gamesTotal }}
+            }
+            · flashcards {{ level.flashcardsSeen }}/{{ level.flashcardsTotal }}
           } @else if (level.bestScore !== null) {
             Mejor resultado: {{ level.bestScore }}% {{ level.passed ? '· ✓ Aprobada' : '· Aún no aprobada' }}
           } @else {
@@ -28,7 +34,9 @@
           }
         </small>
       </div>
-      @if (level.unlocked) {
+      @if (level.unlocked && !level.quizReady) {
+        <a class="btn" [routerLink]="['/cursos', level.levelNumber]">Ir al nivel</a>
+      } @else if (level.unlocked) {
         <a class="btn" [class.primary]="!level.passed" [routerLink]="['/evaluaciones', level.levelNumber]">
           {{ level.passed ? 'Repetir' : 'Presentar' }}
         </a>

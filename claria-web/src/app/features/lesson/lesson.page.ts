@@ -1,7 +1,8 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
-import { ContentService } from '../../core/content/content.service';
+import { ContentError, ContentService } from '../../core/content/content.service';
+import { createCountdown } from '../../core/content/countdown';
 import { LessonDetail, LessonSummary } from '../../core/models/domain.models';
 import { GameEmbedComponent } from '../../shared/components/game-embed/game-embed.component';
 import { TextBlocksComponent } from '../../shared/components/text-blocks/text-blocks.component';
@@ -24,6 +25,15 @@ export class LessonPage {
   protected readonly state = signal<'loading' | 'ready' | 'locked' | 'missing'>('loading');
   protected readonly saving = signal(false);
   protected readonly error = signal('');
+  /** Tiempo mínimo de lectura que falta (lo calcula el servidor). */
+  protected readonly countdown = createCountdown();
+
+  protected readonly gamesPending = computed(
+    () => this.lesson()?.activities.some((a) => !a.completed) ?? false,
+  );
+  protected readonly canComplete = computed(
+    () => this.countdown.remaining() <= 0 && !this.gamesPending(),
+  );
 
   protected readonly next = computed(() => {
     const list = this.siblings();
@@ -52,8 +62,10 @@ export class LessonPage {
       this.siblings.update((list) =>
         list.map((l) => (l.id === lesson.id ? { ...l, completed: true } : l)),
       );
-    } catch {
-      this.error.set('No pudimos guardar tu avance. Inténtalo de nuevo.');
+    } catch (e) {
+      this.error.set(
+        e instanceof ContentError ? e.message : 'No pudimos guardar tu avance. Inténtalo de nuevo.',
+      );
     } finally {
       this.saving.set(false);
     }
@@ -81,8 +93,29 @@ export class LessonPage {
     }
     this.lesson.set(lesson);
     this.siblings.set(siblings);
+    this.error.set('');
     this.state.set('ready');
+
+    if (!lesson.completed) {
+      try {
+        this.countdown.start((await this.content.startLesson(lesson.id)).secondsRemaining);
+      } catch (e) {
+        this.error.set(e instanceof ContentError ? e.message : 'No pudimos registrar tu lectura.');
+      }
+    }
     window.scrollTo({ top: 0 });
+  }
+
+  /** El juego avisó que se terminó: se actualiza para habilitar «Marcar como completada». */
+  protected markGameDone(activityId: string): void {
+    const lesson = this.lesson();
+    if (!lesson) return;
+    this.lesson.set({
+      ...lesson,
+      activities: lesson.activities.map((a) =>
+        a.id === activityId ? { ...a, completed: true } : a,
+      ),
+    });
   }
 
   protected goToQuiz(): void {

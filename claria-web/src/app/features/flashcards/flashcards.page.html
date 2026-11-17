@@ -25,10 +25,16 @@
   <p class="loading">{{ loading() ? 'Cargando tarjetas…' : 'Este nivel aún no tiene tarjetas.' }}</p>
 } @else {
   <div class="row-between">
-    <span>TARJETAS DOMINADAS　{{ masteredIds().length }} de {{ cards().length }}</span>
+    <span>
+      RESPUESTAS VISTAS　{{ seenIds().length }} de {{ cards().length }}
+      @if (seenIds().length === cards().length) {
+        ✓
+      }
+      ·　DOMINADAS　{{ masteredIds().length }}
+    </span>
     <b>{{ selectedLevel()?.title }}</b>
   </div>
-  <div class="bar mastery-bar"><i [style.width.%]="masteredPercent()"></i></div>
+  <div class="bar mastery-bar"><i [style.width.%]="seenPercent()"></i></div>
 
   <div class="row-between card-meta">
     <span>Tarjeta {{ index() + 1 }} de {{ cards().length }}</span>
@@ -81,5 +87,8 @@
     <button class="btn" (click)="move(1)">Siguiente　›</button>
   </div>
 
-  <p class="flashcard-hint">Usa las flechas ← → del teclado o desliza la tarjeta para cambiar.</p>
+  <p class="flashcard-hint">
+    Voltea todas las tarjetas del nivel para poder presentar su evaluación.<br />
+    Usa las flechas ← → del teclado o desliza la tarjeta para cambiar.
+  </p>
 }

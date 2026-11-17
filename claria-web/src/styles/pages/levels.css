@@ -245,3 +245,68 @@
     aspect-ratio: 3 / 4;
   }
 }
+
+/* --- Estado del juego y requisitos -------------------------------------- */
+
+.game-status {
+  color: #10c98f;
+  font-weight: 800;
+}
+
+.game-status.pending {
+  color: var(--ink-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.game.game-done {
+  border-color: rgb(16 201 143 / 45%);
+}
+
+.game .text-button {
+  margin-top: 10px;
+}
+
+.lesson-timer {
+  color: var(--ink-subtle);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.requirements {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 22px;
+}
+
+.requirements ul {
+  display: grid;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.requirements li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ink-muted);
+}
+
+.requirements li.done {
+  color: #10c98f;
+  font-weight: 700;
+}
+
+.requirements a {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.lesson-complete {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}

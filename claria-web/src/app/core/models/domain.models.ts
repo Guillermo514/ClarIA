@@ -42,6 +42,12 @@ export interface LevelSummary {
   bestScore: number | null;
   lessonsTotal: number;
   lessonsCompleted: number;
+  gamesTotal: number;
+  gamesCompleted: number;
+  flashcardsTotal: number;
+  flashcardsSeen: number;
+  /** Ya completó lecciones, juegos y flashcards (o es docente/admin). */
+  quizReady: boolean;
   medalName: string | null;
   medalIcon: string | null;
   medalEarned: boolean;
@@ -61,6 +67,13 @@ export interface LessonActivity {
   id: string;
   title: string;
   embedUrl: string;
+  completed: boolean;
+}
+
+/** Respuesta de start_lesson() / start_activity(): tiempo que falta según el servidor. */
+export interface TimedStart {
+  completed: boolean;
+  secondsRemaining: number;
 }
 
 export interface SourceLink {
@@ -91,6 +104,12 @@ export interface Article {
   lessonTitle: string;
   levelNumber: number;
   source: SourceLink | null;
+}
+
+/** Estado de las tarjetas del estudiante en un nivel. */
+export interface CardStates {
+  seenIds: string[];
+  masteredIds: string[];
 }
 
 export interface Flashcard {

@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
 import { ContentService } from '../../core/content/content.service';
 import { Flashcard, LevelSummary } from '../../core/models/domain.models';
@@ -19,6 +20,7 @@ type CardDirection = 'next' | 'prev' | null;
 })
 export class FlashcardsPage {
   private readonly content = inject(ContentService);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly unlockedLevels = computed(() =>
     this.content.levels().filter((level) => level.unlocked),
@@ -30,13 +32,15 @@ export class FlashcardsPage {
   protected readonly flipped = signal(false);
   protected readonly direction = signal<CardDirection>(null);
   protected readonly masteredIds = signal<string[]>([]);
+  /** Tarjetas cuya respuesta ya vio: cuentan para poder presentar la evaluación. */
+  protected readonly seenIds = signal<string[]>([]);
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly error = signal('');
 
   protected readonly card = computed(() => this.cards()[this.index()] ?? null);
-  protected readonly masteredPercent = computed(() =>
-    this.cards().length ? (this.masteredIds().length / this.cards().length) * 100 : 0,
+  protected readonly seenPercent = computed(() =>
+    this.cards().length ? (this.seenIds().length / this.cards().length) * 100 : 0,
   );
 
   /** Punto donde empezó el toque, para detectar el deslizamiento. */
@@ -66,7 +70,9 @@ export class FlashcardsPage {
     this.cards.set([]);
     try {
       const cards = await this.content.getFlashcards(level.id);
-      this.masteredIds.set(await this.content.getMasteredCardIds(cards.map((c) => c.id)));
+      const states = await this.content.getCardStates(cards.map((c) => c.id));
+      this.masteredIds.set(states.masteredIds);
+      this.seenIds.set(states.seenIds);
       this.cards.set(cards);
       this.index.set(0);
       this.flipped.set(false);
@@ -84,6 +90,20 @@ export class FlashcardsPage {
       return;
     }
     this.flipped.update((value) => !value);
+    if (this.flipped()) void this.markSeen();
+  }
+
+  /** La primera vez que ve la respuesta se guarda en la cuenta. */
+  private async markSeen(): Promise<void> {
+    const card = this.card();
+    if (!card || this.seenIds().includes(card.id)) return;
+    this.seenIds.update((ids) => [...ids, card.id]);
+    try {
+      await this.content.markCardSeen(card.id);
+      void this.content.refreshLevels();
+    } catch {
+      this.seenIds.update((ids) => ids.filter((id) => id !== card.id));
+    }
   }
 
   /** Flechas ← → del teclado para cambiar de tarjeta (no mientras se escribe). */
@@ -141,7 +161,12 @@ export class FlashcardsPage {
   private async init(): Promise<void> {
     try {
       await this.content.ensureLevels();
-      const first = this.content.currentLevel() ?? this.unlockedLevels()[0];
+      // /flashcards?nivel=3 abre directamente las tarjetas de ese nivel.
+      const requested = Number(this.route.snapshot.queryParamMap.get('nivel'));
+      const first =
+        this.unlockedLevels().find((l) => l.levelNumber === requested) ??
+        this.content.currentLevel() ??
+        this.unlockedLevels()[0];
       if (first) await this.selectLevel(first);
       else this.loading.set(false);
     } catch {

@@ -1,18 +1,20 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { ContentService } from '../../core/content/content.service';
+import { ContentError, ContentService } from '../../core/content/content.service';
 import { LevelSummary, Quiz, QuizResult } from '../../core/models/domain.models';
+import { LevelRequirementsComponent } from '../../shared/components/level-requirements/level-requirements.component';
 import { MedalComponent } from '../../shared/components/medal/medal.component';
 
-type QuizState = 'loading' | 'locked' | 'missing' | 'answering' | 'sending' | 'result';
+type QuizState =
+  'loading' | 'locked' | 'missing' | 'requirements' | 'answering' | 'sending' | 'result';
 
 /**
  * Evaluación final de un nivel. El estudiante responde todas las preguntas y la
  * base de datos califica (las respuestas correctas nunca llegan al navegador antes).
  */
 @Component({
-  imports: [RouterLink, MedalComponent],
+  imports: [RouterLink, MedalComponent, LevelRequirementsComponent],
   templateUrl: './quiz.page.html',
 })
 export class QuizPage {
@@ -113,14 +115,19 @@ export class QuizPage {
       this.result.set(await this.content.submitQuiz(quiz.id, answers));
       this.state.set('result');
       window.scrollTo({ top: 0 });
-    } catch {
-      this.error.set('No pudimos enviar tu evaluación. Revisa tu conexión e inténtalo de nuevo.');
+    } catch (e) {
+      this.error.set(
+        e instanceof ContentError
+          ? e.message
+          : 'No pudimos enviar tu evaluación. Revisa tu conexión e inténtalo de nuevo.',
+      );
       this.state.set('answering');
     }
   }
 
   private async load(): Promise<void> {
     this.state.set('loading');
+    await this.content.refreshLevels();
     const level = await this.content.getLevel(Number(this.nivel()));
     this.level.set(level);
     if (!level) {
@@ -129,6 +136,10 @@ export class QuizPage {
     }
     if (!level.unlocked) {
       this.state.set('locked');
+      return;
+    }
+    if (!level.quizReady) {
+      this.state.set('requirements');
       return;
     }
 
