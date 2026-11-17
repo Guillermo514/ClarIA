@@ -47,12 +47,14 @@
         }
 
         <section class="lesson-resources">
-          @if (lesson.source) {
-            <a class="panel resource" [href]="lesson.source.url" target="_blank" rel="noopener">
-              <span class="eyebrow">FUENTE CONFIABLE ↗</span>
-              <b>{{ lesson.source.citation }}</b>
-            </a>
-          }
+          <a
+            class="panel resource"
+            routerLink="/flashcards"
+            [queryParams]="{ nivel: lesson.levelNumber, leccion: lesson.code }"
+          >
+            <span class="eyebrow">FLASHCARDS DEL NIVEL {{ lesson.levelNumber }} →</span>
+            <b>Repasa las tarjetas de esta lección</b>
+          </a>
           @if (lesson.articleTitle) {
             <a
               class="panel resource"

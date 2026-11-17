@@ -167,8 +167,13 @@ export class FlashcardsPage {
         this.unlockedLevels().find((l) => l.levelNumber === requested) ??
         this.content.currentLevel() ??
         this.unlockedLevels()[0];
-      if (first) await this.selectLevel(first);
-      else this.loading.set(false);
+      if (first) {
+        await this.selectLevel(first);
+        // …y &leccion=1.2 empieza en las tarjetas de esa lección.
+        const lesson = this.route.snapshot.queryParamMap.get('leccion');
+        const index = this.cards().findIndex((c) => c.lessonCode === lesson);
+        if (index > 0) this.index.set(index);
+      } else this.loading.set(false);
     } catch {
       this.error.set('No pudimos cargar tus niveles.');
       this.loading.set(false);
