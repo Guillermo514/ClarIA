@@ -148,3 +148,28 @@ where id = (select id from auth.users where email = 'correo@ejemplo.com');
   privacidad al registrarse). El texto del aviso en `/aviso-de-privacidad` es preliminar.
 - Valores de **huella ambiental**, **escenarios del evaluador de prompts**, **ejercicios críticos** y
   **encuestas**: tablas listas, sin datos.
+
+## Evaluador de IA (prompts)
+
+Califica prompts **con reglas en el servidor**, sin enviar textos a ninguna IA externa.
+
+| Rúbrica | Grupos | Criterios |
+|---|---|---|
+| `basica` | 8-11 y 12-14 | Rol, Contexto, Tarea, Formato y Ejemplo (lección 5.3), 20 pts cada uno. |
+| `avanzada` | 15-17 y 18+ | Los 5 ingredientes (14 pts c/u) + Eficiencia (15) + Técnicas avanzadas de la lección 7.1 (15). |
+
+- Cada criterio vale completo (`strong`), la mitad (`partial`) o nada, según los patrones de
+  `prompt_rules`. Eficiencia se mide por número de palabras (15 a 120 = completo).
+- `prompt_penalties` resta puntos al pedir que la IA haga la tarea (máximo −40).
+- Reglas, criterios y penalizaciones son **datos**: un administrador puede ajustarlos sin cambiar
+  código. Los patrones son expresiones regulares de PostgreSQL sobre el texto en minúsculas y sin
+  acentos (`\y` = límite de palabra); un trigger rechaza patrones inválidos.
+- **Misiones** (`scenarios`): por grupo de edad, con `passing_score` (70). Si tienen `lesson_id`
+  son obligatorias para completar esa lección (5.4 y 7.1). Los intentos (`prompt_attempts`) solo se
+  guardan con `submit_prompt_attempt()`.
+- El borrador de misiones está en [`supabase/seed/misiones-evaluador.sql`](../supabase/seed/misiones-evaluador.sql).
+
+| Función | Uso |
+|---|---|
+| `evaluate_prompt(texto, misión?)` | Califica sin guardar (vista previa). |
+| `submit_prompt_attempt(misión, texto)` | Califica y guarda el intento. |
