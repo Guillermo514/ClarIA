@@ -1,142 +1,138 @@
-/*
- * Modelos del dominio.
- *
- * Los primeros toman como referencia el modelo de datos acordado (nombres en
- * snake_case, igual que las columnas). Los de la sección final son modelos de
- * presentación usados solo por los datos de demostración.
+/**
+ * Modelos de datos que usa la aplicación.
+ * Reflejan las tablas y funciones de Supabase descritas en docs/base-de-datos.md.
  */
 
-// --- Usuarios ---------------------------------------------------------------
+// --- Usuario -------------------------------------------------------------
+
+export type RoleName = 'student' | 'teacher' | 'admin';
+
+export type AcademicLevel = 'primaria' | 'secundaria' | 'preparatoria' | 'universidad' | 'otro';
 
 export interface Profile {
   id: string;
-  full_name: string;
-  birth_date: string;
-  role_id: string;
+  fullName: string;
+  birthDate: string;
+  institution: string | null;
+  academicLevel: AcademicLevel | null;
+  role: RoleName;
 }
 
-// --- Contenido y progreso ---------------------------------------------------
+export interface SignUpData {
+  fullName: string;
+  birthDate: string;
+  institution: string;
+  academicLevel: AcademicLevel | '';
+  email: string;
+  password: string;
+}
 
-export interface Course {
+// --- Niveles y lecciones --------------------------------------------------
+
+/** Fila de la función get_my_levels(). */
+export interface LevelSummary {
   id: string;
+  levelNumber: number;
   title: string;
-  category: string;
-  level: string;
-  description: string;
-  hours: number;
-  lessons: number;
-  progress: number;
-}
-
-export interface Lesson {
-  id: string;
-  course_id: string;
-  title: string;
-  type: string;
-}
-
-export interface LessonProgress {
-  user_id: string;
-  lesson_id: string;
-  status: string;
-  time_spent_s: number;
-  completed_at?: string;
-}
-
-// --- Evaluación y práctica --------------------------------------------------
-
-export interface Quiz {
-  id: string;
-  lesson_id?: string;
-  course_id?: string;
-  passing_score: number;
-}
-
-export interface Question {
-  id: string;
-  quiz_id: string;
-  type: string;
-  statement: string;
-  options: string[];
-  correctIndex: number;
-}
-
-export interface QuizAttempt {
-  id: string;
-  user_id: string;
-  quiz_id: string;
-  score: number;
+  objective: string;
+  ageGroupCode: string;
+  ageGroupName: string;
+  unlocked: boolean;
   passed: boolean;
+  bestScore: number | null;
+  lessonsTotal: number;
+  lessonsCompleted: number;
+  medalName: string | null;
+  medalIcon: string | null;
+  medalEarned: boolean;
 }
 
-export interface Scenario {
+export interface LessonSummary {
+  id: string;
+  code: string;
+  title: string;
+  sortOrder: number;
+  durationMin: number | null;
+  hasGame: boolean;
+  completed: boolean;
+}
+
+export interface LessonActivity {
   id: string;
   title: string;
-  goal: string;
+  embedUrl: string;
 }
 
-export interface PromptAttempt {
-  id: string;
-  user_id: string;
-  scenario_id: string;
-  score: number;
-  attempt_no: number;
+export interface SourceLink {
+  citation: string;
+  url: string;
 }
 
-// --- Encuestas y logros -----------------------------------------------------
-
-export interface Survey {
-  id: string;
-  type: 'pre' | 'post';
-  title: string;
+export interface LessonDetail extends LessonSummary {
+  content: string;
+  courseId: string;
+  levelNumber: number;
+  levelTitle: string;
+  activities: LessonActivity[];
+  articleTitle: string | null;
+  source: SourceLink | null;
 }
 
-export interface SurveyResponse {
-  id: string;
-  user_id: string;
-  survey_id: string;
-  submitted_at: string;
-  answers: string[];
-}
-
-export interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  earned: boolean;
-}
-
-export interface UserAchievement {
-  user_id: string;
-  achievement_id: string;
-  earned_at?: string;
-}
-
-// --- Modelos de presentación ------------------------------------------------
+// --- Recursos -------------------------------------------------------------
 
 export interface Article {
   id: string;
-  category: string;
-  readMinutes: number;
-  date: string;
   title: string;
-  description: string;
-  keyPoint: string;
+  summary: string;
+  body: string;
   author: string;
+  publishedLabel: string | null;
+  lessonCode: string;
+  lessonTitle: string;
+  levelNumber: number;
+  source: SourceLink | null;
 }
 
 export interface Flashcard {
   id: string;
-  question: string;
-  answer: string;
-  category: string;
+  front: string;
+  back: string;
+  lessonCode: string;
+  lessonTitle: string;
 }
 
-/** Tarjeta de insignia que se muestra en la página de logros. */
-export interface AchievementBadge {
-  icon: string;
-  title: string;
-  date: string;
+// --- Evaluaciones ---------------------------------------------------------
+
+export interface QuizOption {
+  id: string;
   text: string;
-  earned: boolean;
+}
+
+export interface QuizQuestion {
+  id: string;
+  statement: string;
+  options: QuizOption[];
+}
+
+export interface Quiz {
+  id: string;
+  title: string;
+  passingScore: number;
+  questions: QuizQuestion[];
+}
+
+export interface QuizAnswer {
+  questionId: string;
+  optionIds: string[];
+}
+
+/** Respuesta de la función submit_quiz(). */
+export interface QuizResult {
+  score: number;
+  passed: boolean;
+  correct: number;
+  total: number;
+  passingScore: number;
+  results: { questionId: string; correct: boolean; correctOptionIds: string[] }[];
+  newMedal: { name: string; icon: string | null } | null;
 }

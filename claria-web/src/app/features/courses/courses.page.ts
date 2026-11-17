@@ -1,36 +1,25 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
-import { MockDataService } from '../../core/services/mock-data.service';
+import { ContentService } from '../../core/content/content.service';
+import { MedalComponent } from '../../shared/components/medal/medal.component';
 
-const ALL_COURSES = 'Todos';
-
-/** Catálogo de cursos con filtro por categoría y vista de temario. */
+/** Niveles del grupo de edad del estudiante, con su avance y desbloqueo. */
 @Component({
+  imports: [RouterLink, MedalComponent],
   templateUrl: './courses.page.html',
 })
 export class CoursesPage {
-  private readonly data = inject(MockDataService);
+  private readonly content = inject(ContentService);
 
-  protected readonly categories = [
-    'Pensamiento Crítico',
-    'Fundamentos Técnicos',
-    'Ética y Responsabilidad',
-  ];
+  protected readonly levels = this.content.levels;
+  protected readonly error = signal('');
 
-  protected readonly filter = signal(ALL_COURSES);
-  protected readonly selected = signal('');
-
-  protected readonly filtered = computed(() =>
-    this.filter() === ALL_COURSES
-      ? this.data.courses
-      : this.data.courses.filter((course) => course.category === this.filter()),
-  );
-
-  protected openCourse(title: string): void {
-    this.selected.set(title);
+  constructor() {
+    this.content.refreshLevels().catch(() => this.error.set('No pudimos cargar tus niveles.'));
   }
 
-  protected closeCourse(): void {
-    this.selected.set('');
+  protected percent(completed: number, total: number): number {
+    return total ? Math.round((completed / total) * 100) : 0;
   }
 }

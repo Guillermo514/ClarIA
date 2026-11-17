@@ -1,0 +1,93 @@
+<main class="auth-page">
+  <section class="auth-card panel">
+    <a class="auth-brand" routerLink="/ingresar">
+      <img src="assets/claria-logo.jpg" alt="" />
+      <span><b>ClarIA</b><small>APRENDE CON CRITERIO</small></span>
+    </a>
+
+    @if (checkEmail()) {
+      <h1>Revisa tu correo</h1>
+      <p>
+        Te enviamos un enlace a <b>{{ form.email }}</b> para confirmar tu cuenta. Después podrás
+        iniciar sesión.
+      </p>
+      <a class="btn primary auth-submit" routerLink="/ingresar">Ir a iniciar sesión</a>
+    } @else {
+      <h1>Crea tu cuenta</h1>
+      <p>Tu ruta de aprendizaje se ajusta a tu edad.</p>
+
+      <form (ngSubmit)="submit()" novalidate>
+        <label>
+          Nombre completo
+          <input name="fullName" autocomplete="name" maxlength="100" [(ngModel)]="form.fullName" />
+        </label>
+
+        <div class="form-row">
+          <label>
+            Fecha de nacimiento
+            <input type="date" name="birthDate" [max]="today" [(ngModel)]="form.birthDate" />
+          </label>
+          <label>
+            Nivel escolar
+            <select name="academicLevel" [(ngModel)]="form.academicLevel">
+              <option value="">Prefiero no decir</option>
+              @for (level of academicLevels; track level.value) {
+                <option [value]="level.value">{{ level.label }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <label>
+          Escuela <small>(opcional)</small>
+          <input name="institution" maxlength="150" [(ngModel)]="form.institution" />
+        </label>
+
+        <label>
+          Correo electrónico
+          <input type="email" name="email" autocomplete="email" [(ngModel)]="form.email" />
+        </label>
+
+        <div class="form-row">
+          <label>
+            Contraseña
+            <input
+              type="password"
+              name="password"
+              autocomplete="new-password"
+              [(ngModel)]="form.password"
+            />
+          </label>
+          <label>
+            Repite la contraseña
+            <input
+              type="password"
+              name="confirmPassword"
+              autocomplete="new-password"
+              [(ngModel)]="confirmPassword"
+            />
+          </label>
+        </div>
+
+        <label class="check">
+          <input type="checkbox" name="privacy" [(ngModel)]="acceptedPrivacy" />
+          <span>
+            Leí y acepto el
+            <a routerLink="/aviso-de-privacidad" target="_blank">aviso de privacidad</a>.
+            Si soy menor de edad, lo revisé con mi mamá, papá o tutor.
+          </span>
+        </label>
+
+        @if (error()) {
+          <p class="form-error" role="alert">{{ error() }}</p>
+        }
+
+        <button class="btn primary auth-submit" type="submit" [disabled]="loading()">
+          {{ loading() ? 'Creando cuenta…' : 'Crear cuenta' }}
+        </button>
+      </form>
+
+      <p class="auth-switch">¿Ya tienes cuenta? <a routerLink="/ingresar">Inicia sesión</a></p>
+    }
+  </section>
+</main>

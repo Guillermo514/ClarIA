@@ -1,0 +1,94 @@
+@switch (state()) {
+  @case ('loading') {
+    <p class="loading">Cargando lección…</p>
+  }
+  @case ('missing') {
+    <section class="panel notice">
+      <h2>No encontramos esta lección</h2>
+      <a class="btn primary" routerLink="/cursos">Ver mis niveles</a>
+    </section>
+  }
+  @case ('locked') {
+    <section class="panel notice">
+      <h2>🔒 Esta lección todavía está bloqueada</h2>
+      <p>Aprueba la evaluación del nivel anterior para desbloquearla.</p>
+      <a class="btn primary" routerLink="/cursos">Ver mis niveles</a>
+    </section>
+  }
+  @case ('ready') {
+    @if (lesson(); as lesson) {
+      <a class="crumb-link" [routerLink]="['/cursos', lesson.levelNumber]">
+        ‹ Nivel {{ lesson.levelNumber }}: {{ lesson.levelTitle }}
+      </a>
+
+      <article class="lesson">
+        <div class="page-head">
+          <div class="eyebrow">
+            LECCIÓN {{ lesson.code }}
+            @if (lesson.durationMin) {
+              · ◷ {{ lesson.durationMin }} MIN
+            }
+          </div>
+          <h1>{{ lesson.title }}</h1>
+        </div>
+
+        <div class="panel lesson-body">
+          <app-text-blocks [text]="lesson.content" />
+        </div>
+
+        @for (activity of lesson.activities; track activity.id) {
+          <app-game-embed [url]="activity.embedUrl" [title]="activity.title" />
+        }
+
+        <section class="lesson-resources">
+          @if (lesson.source) {
+            <a class="panel resource" [href]="lesson.source.url" target="_blank" rel="noopener">
+              <span class="eyebrow">FUENTE CONFIABLE ↗</span>
+              <b>{{ lesson.source.citation }}</b>
+            </a>
+          }
+          @if (lesson.articleTitle) {
+            <a
+              class="panel resource"
+              routerLink="/articulos"
+              [queryParams]="{ leccion: lesson.code }"
+            >
+              <span class="eyebrow">ARTÍCULO DE LA LECCIÓN →</span>
+              <b>{{ lesson.articleTitle }}</b>
+            </a>
+          }
+        </section>
+
+        @if (error()) {
+          <p class="form-error" role="alert">{{ error() }}</p>
+        }
+
+        <nav class="lesson-nav">
+          @if (previous(); as prev) {
+            <a class="btn" [routerLink]="['/cursos', lesson.levelNumber, 'leccion', prev.code]">
+              ‹ {{ prev.code }}
+            </a>
+          } @else {
+            <span></span>
+          }
+
+          @if (lesson.completed) {
+            <span class="lesson-done">✓ Lección completada</span>
+          } @else {
+            <button class="btn primary" [disabled]="saving()" (click)="complete()">
+              {{ saving() ? 'Guardando…' : '✓ Marcar como completada' }}
+            </button>
+          }
+
+          @if (next(); as nextLesson) {
+            <a class="btn" [routerLink]="['/cursos', lesson.levelNumber, 'leccion', nextLesson.code]">
+              {{ nextLesson.code }} ›
+            </a>
+          } @else {
+            <button class="btn" (click)="goToQuiz()">Evaluación ›</button>
+          }
+        </nav>
+      </article>
+    }
+  }
+}

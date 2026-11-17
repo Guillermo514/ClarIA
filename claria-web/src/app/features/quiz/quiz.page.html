@@ -1,0 +1,142 @@
+@switch (state()) {
+  @case ('loading') {
+    <p class="loading">Cargando evaluación…</p>
+  }
+  @case ('missing') {
+    <section class="panel notice">
+      <h2>No encontramos esta evaluación</h2>
+      <a class="btn primary" routerLink="/evaluaciones">Ver evaluaciones</a>
+    </section>
+  }
+  @case ('locked') {
+    <section class="panel notice">
+      <h2>🔒 Evaluación bloqueada</h2>
+      <p>Aprueba primero la evaluación del nivel anterior.</p>
+      <a class="btn primary" routerLink="/evaluaciones">Ver evaluaciones</a>
+    </section>
+  }
+  @case ('result') {
+    @if (result(); as result) {
+      <!-- Resultado final -->
+      <section class="quiz panel result-panel">
+        <div class="eyebrow">EVALUACIÓN · NIVEL {{ level()?.levelNumber }}</div>
+
+        <!-- Anillo que se dibuja hasta el porcentaje obtenido, con destellos alrededor -->
+        <div class="result-ring" [style.--percent]="result.score" aria-hidden="true">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-track" cx="60" cy="60" r="52" pathLength="100" />
+            <circle class="ring-fill" cx="60" cy="60" r="52" pathLength="100" />
+          </svg>
+          <span class="result-icon">{{ resultIcon() }}</span>
+          <i class="sparkle s1">✦</i>
+          <i class="sparkle s2">✧</i>
+          <i class="sparkle s3">✦</i>
+          <i class="sparkle s4">✧</i>
+        </div>
+
+        <h3 class="result-title">{{ resultTitle() }}</h3>
+        <h2>{{ result.correct }} de {{ result.total }} correctas · {{ result.score }}%</h2>
+        <p>
+          @if (result.passed) {
+            Superaste el mínimo de {{ result.passingScore }}%.
+          } @else {
+            Necesitas {{ result.passingScore }}% para aprobar. Repasa las lecciones y vuelve a
+            intentarlo.
+          }
+        </p>
+
+        @if (result.newMedal; as medal) {
+          <div class="new-medal">
+            <app-medal [icon]="medal.icon" [earned]="true" />
+            <b>¡Ganaste la medalla «{{ medal.name }}»!</b>
+          </div>
+        }
+
+        <div class="result-actions">
+          <button class="btn" (click)="restart()">Intentar de nuevo</button>
+          @if (result.passed && nextLevel()?.unlocked) {
+            <a class="btn primary" [routerLink]="['/cursos', nextLevel()!.levelNumber]">
+              Ir al Nivel {{ nextLevel()!.levelNumber }} →
+            </a>
+          } @else {
+            <a class="btn primary" [routerLink]="['/cursos', level()?.levelNumber]">
+              Repasar el nivel
+            </a>
+          }
+        </div>
+      </section>
+
+      <!-- Revisión de respuestas -->
+      <section class="quiz panel review">
+        <h2>Revisa tus respuestas</h2>
+        @for (q of quiz()?.questions; track q.id; let i = $index) {
+          <div class="review-item">
+            <b>{{ i + 1 }}. {{ q.statement }}</b>
+            @for (option of q.options; track option.id) {
+              <div
+                class="option"
+                [class.correct]="isCorrectOption(q.id, option.id)"
+                [class.wrong]="choices()[q.id] === option.id && !wasAnsweredRight(q.id)"
+              >
+                {{ choices()[q.id] === option.id ? '◉' : '◯' }}　{{ option.text }}
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+  }
+  @default {
+    <!-- Respondiendo (o enviando) -->
+    <a class="crumb-link" routerLink="/evaluaciones">‹ Evaluaciones</a>
+    <div class="page-head">
+      <div class="eyebrow">☑ NIVEL {{ level()?.levelNumber }}</div>
+      <h1>{{ quiz()?.title }}</h1>
+    </div>
+
+    @if (question(); as q) {
+      <section class="quiz panel">
+        <div class="row-between">
+          <span>Pregunta {{ index() + 1 }} de {{ total() }}</span>
+          <b>Aprueba con {{ quiz()?.passingScore }}%</b>
+        </div>
+        <div class="bar"><i [style.width.%]="((index() + 1) / total()) * 100"></i></div>
+
+        <h2>{{ q.statement }}</h2>
+
+        @for (option of q.options; track option.id) {
+          <button
+            class="option"
+            [class.chosen]="choice() === option.id"
+            [attr.aria-pressed]="choice() === option.id"
+            [disabled]="state() === 'sending'"
+            (click)="choose(option.id)"
+          >
+            {{ choice() === option.id ? '◉' : '◯' }}　{{ option.text }}
+          </button>
+        }
+
+        @if (error()) {
+          <p class="form-error" role="alert">{{ error() }}</p>
+        }
+
+        <div class="row-between quiz-actions">
+          <button class="btn" [disabled]="index() === 0 || state() === 'sending'" (click)="previous()">
+            ‹ Anterior
+          </button>
+          <button
+            class="btn white"
+            [disabled]="choice() === null || state() === 'sending'"
+            (click)="next()"
+          >
+            @if (state() === 'sending') {
+              Calificando…
+            } @else {
+              {{ isLast() ? 'Enviar evaluación' : 'Siguiente ›' }}
+            }
+          </button>
+        </div>
+      </section>
+    }
+  }
+}

@@ -114,3 +114,22 @@
     animation: none;
   }
 }
+
+/* Medalla con imagen dentro de la insignia */
+.badge.badge-medal {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.badge.badge-medal .medal {
+  width: 76px;
+  height: 76px;
+}
+
+/* El gris lo aplica la tarjeta bloqueada; se evita duplicarlo en la medalla. */
+.achievement.locked .badge.badge-medal .medal {
+  filter: none;
+  opacity: 1;
+}

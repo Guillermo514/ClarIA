@@ -2,43 +2,81 @@
   <div class="eyebrow">▤ BIBLIOTECA DE CRITERIO</div>
   <h1>Artículos y Guías de Estudio</h1>
   <p>
-    Lecturas curadas sobre pensamiento crítico, verificación bibliográfica y preservación de la voz
-    personal al investigar con IA.
+    Lecturas de fuentes confiables que acompañan cada lección. Se suman nuevas al desbloquear cada
+    nivel.
   </p>
 </div>
 
+<!-- Filtro por nivel -->
+@if (levelNumbers().length > 1) {
+  <div class="filters">
+    <button class="chip" [class.selected]="levelFilter() === null" (click)="levelFilter.set(null)">
+      Todos
+    </button>
+    @for (level of levelNumbers(); track level) {
+      <button class="chip" [class.selected]="levelFilter() === level" (click)="levelFilter.set(level)">
+        Nivel {{ level }}
+      </button>
+    }
+  </div>
+}
+
+@if (error()) {
+  <p class="form-error" role="alert">{{ error() }}</p>
+}
+
 <section class="grid articles">
-  @for (article of articles; track article.id) {
+  @for (article of filtered(); track article.id) {
     <article class="panel article">
       <div class="meta">
-        <b>{{ article.category }}</b> · ◷ {{ article.readMinutes }} min · {{ article.date }}
+        <b>Lección {{ article.lessonCode }}</b> · {{ article.lessonTitle }}
       </div>
       <h2>{{ article.title }}</h2>
-      <p>{{ article.description }}</p>
-      <div class="key"><b>Punto clave:</b> {{ article.keyPoint }}</div>
+      <p>{{ article.summary }}</p>
 
       <hr />
 
       <div class="row-between">
-        <span>{{ article.author }}</span>
-        <button class="text-button" (click)="open(article.title, article.description)">
-          Leer artículo →
-        </button>
+        <span>
+          {{ article.author }}
+          @if (article.publishedLabel) {
+            · {{ article.publishedLabel }}
+          }
+        </span>
+        <button class="text-button" (click)="open(article)">Leer artículo →</button>
       </div>
     </article>
+  } @empty {
+    @if (loading()) {
+      <p class="loading">Cargando artículos…</p>
+    }
   }
 </section>
 
 <!-- Modal de lectura -->
 @if (opened(); as reading) {
   <div class="modal-backdrop" (click)="close()">
-    <section class="modal panel" (click)="$event.stopPropagation()">
-      <button class="close" (click)="close()">×</button>
-      <div class="eyebrow">LECTURA DE DEMOSTRACIÓN</div>
+    <section class="modal panel article-reader" (click)="$event.stopPropagation()">
+      <button class="close" aria-label="Cerrar" (click)="close()">×</button>
+      <div class="eyebrow">LECCIÓN {{ reading.lessonCode }} · {{ reading.lessonTitle }}</div>
       <h2>{{ reading.title }}</h2>
-      <p>{{ reading.body }}</p>
-      <p>Este contenido es de prueba y podrá conectarse a artículos reales más adelante.</p>
-      <button class="btn primary" (click)="close()">Cerrar</button>
+      <div class="meta">
+        {{ reading.author }}
+        @if (reading.publishedLabel) {
+          · {{ reading.publishedLabel }}
+        }
+      </div>
+
+      <app-text-blocks [text]="reading.body" />
+
+      <div class="row-between">
+        @if (reading.source) {
+          <a class="text-button" [href]="reading.source.url" target="_blank" rel="noopener">
+            Ver fuente original ↗
+          </a>
+        }
+        <button class="btn primary" (click)="close()">Cerrar</button>
+      </div>
     </section>
   </div>
 }

@@ -1,0 +1,34 @@
+<section class="game panel">
+  <div class="row-between">
+    <div>
+      <div class="eyebrow">🎮 DINÁMICA INTERACTIVA</div>
+      <b>{{ title() }}</b>
+    </div>
+    @if (playing()) {
+      <button class="btn" (click)="playing.set(false)">Cerrar juego</button>
+    }
+  </div>
+
+  @if (!safeUrl()) {
+    <p class="game-error">Este juego no está disponible.</p>
+  } @else if (playing()) {
+    <div class="game-frame">
+      <iframe
+        [src]="safeUrl()"
+        [title]="title()"
+        allow="fullscreen; autoplay"
+        allowfullscreen
+        loading="lazy"
+        referrerpolicy="strict-origin-when-cross-origin"
+      ></iframe>
+    </div>
+  } @else {
+    <button class="game-cover" (click)="playing.set(true)">
+      <span class="game-play">▶</span>
+      <span>
+        <b>Jugar ahora</b>
+        <small>Se abre aquí mismo. Contenido de Educaplay.</small>
+      </span>
+    </button>
+  }
+</section>

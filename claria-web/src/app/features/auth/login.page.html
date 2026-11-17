@@ -1,0 +1,38 @@
+<main class="auth-page">
+  <section class="auth-card panel">
+    <a class="auth-brand" routerLink="/ingresar">
+      <img src="assets/claria-logo.jpg" alt="" />
+      <span><b>ClarIA</b><small>APRENDE CON CRITERIO</small></span>
+    </a>
+
+    <h1>Inicia sesión</h1>
+    <p>Continúa tu ruta para aprender a usar la IA con criterio.</p>
+
+    <form (ngSubmit)="submit()" novalidate>
+      <label>
+        Correo electrónico
+        <input type="email" name="email" autocomplete="email" required [(ngModel)]="email" />
+      </label>
+      <label>
+        Contraseña
+        <input
+          type="password"
+          name="password"
+          autocomplete="current-password"
+          required
+          [(ngModel)]="password"
+        />
+      </label>
+
+      @if (error()) {
+        <p class="form-error" role="alert">{{ error() }}</p>
+      }
+
+      <button class="btn primary auth-submit" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Entrando…' : 'Entrar' }}
+      </button>
+    </form>
+
+    <p class="auth-switch">¿Aún no tienes cuenta? <a routerLink="/registro">Regístrate</a></p>
+  </section>
+</main>

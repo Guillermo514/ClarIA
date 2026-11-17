@@ -1,87 +1,42 @@
 <div class="page-head">
-  <div class="eyebrow">☑ COMPROBACIÓN DIAGNÓSTICA</div>
+  <div class="eyebrow">☑ COMPROBACIÓN DE CADA NIVEL</div>
   <h1>Evaluaciones de Criterio</h1>
   <p>
-    Casos prácticos interactivos donde pondrás a prueba tu discernimiento ante citas inventadas,
-    sesgos y alucinaciones.
+    Cada nivel termina con una evaluación de 5 preguntas. Apruébala con 70% o más para ganar la
+    medalla del nivel y desbloquear el siguiente.
   </p>
 </div>
 
-@if (completed()) {
-  <!-- Resultado final -->
-  <section class="quiz panel result-panel">
-    <div class="eyebrow">EVALUACIÓN COMPLETADA</div>
-
-    <!-- Anillo que se dibuja hasta el porcentaje obtenido, con destellos alrededor -->
-    <div class="result-ring" [style.--percent]="percent()" aria-hidden="true">
-      <svg viewBox="0 0 120 120">
-        <circle class="ring-track" cx="60" cy="60" r="52" pathLength="100" />
-        <circle class="ring-fill" cx="60" cy="60" r="52" pathLength="100" />
-      </svg>
-      <span class="result-icon">{{ resultIcon() }}</span>
-      <i class="sparkle s1">✦</i>
-      <i class="sparkle s2">✧</i>
-      <i class="sparkle s3">✦</i>
-      <i class="sparkle s4">✧</i>
-    </div>
-
-    <h3 class="result-title">{{ resultTitle() }}</h3>
-    <h2>Resultado: {{ score() }} / {{ maxScore }} puntos</h2>
-    <p>Has terminado los casos de práctica. Puedes volver a intentarlos para repasar.</p>
-    <button class="btn primary" (click)="restart()">Intentar de nuevo</button>
-  </section>
-} @else {
-  <!-- Caso en curso -->
-  <section class="quiz panel">
-    <div class="row-between">
-      <span>Caso {{ index() + 1 }} de {{ questions.length }}</span>
-      <b class="score-total">
-        Puntaje acumulado: {{ score() }}
-        @if (lastCorrect()) {
-          <span class="points-pop" aria-hidden="true">+{{ pointsPerCorrect }}</span>
-        }
-      </b>
-    </div>
-    <hr />
-
-    <div class="context">
-      <div class="eyebrow">CONTEXTO DEL CASO</div>
-      Estás elaborando una tesis y le pides a una IA un resumen histórico sobre la revolución
-      industrial con referencias académicas.
-    </div>
-
-    <h2>{{ question().statement }}</h2>
-
-    @for (option of question().options; track option; let i = $index) {
-      <button
-        class="option"
-        [class.chosen]="choice() === i"
-        [class.correct]="done() && choice() === i && lastCorrect()"
-        [class.wrong]="done() && choice() === i && lastCorrect() === false"
-        [attr.aria-pressed]="choice() === i"
-        [disabled]="done()"
-        (click)="choice.set(i)"
-      >
-        {{ choice() === i ? '◉' : '◯' }}　{{ option }}
-      </button>
-    }
-
-    @if (feedback()) {
-      <p
-        class="feedback"
-        role="status"
-        [class.good]="lastCorrect()"
-        [class.bad]="lastCorrect() === false"
-      >{{ feedback() }}</p>
-    }
-
-    <div class="row-between quiz-actions">
-      <span>
-        {{ done() ? 'Respuesta registrada. Continúa al siguiente caso.' : 'Selecciona una opción para comprobar.' }}
-      </span>
-      <button class="btn white" [disabled]="choice() === null" (click)="check()">
-        {{ done() ? 'Siguiente caso' : 'Comprobar respuesta' }}
-      </button>
-    </div>
-  </section>
+@if (error()) {
+  <p class="form-error" role="alert">{{ error() }}</p>
 }
+
+<section class="quiz-list">
+  @for (level of levels(); track level.id) {
+    <article class="panel quiz-row" [class.locked]="!level.unlocked">
+      <app-medal [icon]="level.medalIcon" [earned]="level.medalEarned" size="small" />
+      <div class="quiz-row-info">
+        <div class="meta"><b>Nivel {{ level.levelNumber }}</b> · {{ level.medalName }}</div>
+        <b>{{ level.title }}</b>
+        <small>
+          @if (!level.unlocked) {
+            🔒 Se desbloquea al aprobar el nivel anterior
+          } @else if (level.bestScore !== null) {
+            Mejor resultado: {{ level.bestScore }}% {{ level.passed ? '· ✓ Aprobada' : '· Aún no aprobada' }}
+          } @else {
+            Aún no la presentas
+          }
+        </small>
+      </div>
+      @if (level.unlocked) {
+        <a class="btn" [class.primary]="!level.passed" [routerLink]="['/evaluaciones', level.levelNumber]">
+          {{ level.passed ? 'Repetir' : 'Presentar' }}
+        </a>
+      }
+    </article>
+  } @empty {
+    @if (!error()) {
+      <p class="loading">Cargando evaluaciones…</p>
+    }
+  }
+</section>

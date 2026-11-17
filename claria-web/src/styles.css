@@ -16,8 +16,10 @@
 @import './styles/components.css';
 
 /* 4. Estilos por página */
+@import './styles/pages/auth.css';
 @import './styles/pages/home.css';
 @import './styles/pages/courses.css';
+@import './styles/pages/levels.css';
 @import './styles/pages/evaluations.css';
 @import './styles/pages/achievements.css';
 @import './styles/pages/flashcards.css';
