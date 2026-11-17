@@ -41,12 +41,6 @@ html.light .top-links .nav-active {
   color: var(--brand);
 }
 
-html.light .audit-btn {
-  background: #e5f7fa;
-  border-color: #b8e7ef;
-  color: #006b82;
-}
-
 html.light .icon-btn,
 html.light .profile-menu {
   background: #fff;
