@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { AuthService } from '../../core/auth/auth.service';
 import { ContentService } from '../../core/content/content.service';
 import { MedalComponent } from '../../shared/components/medal/medal.component';
 
@@ -13,6 +14,7 @@ export class CoursesPage {
   private readonly content = inject(ContentService);
 
   protected readonly levels = this.content.levels;
+  protected readonly isStaff = inject(AuthService).isStaff;
   protected readonly error = signal('');
 
   constructor() {

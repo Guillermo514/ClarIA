@@ -2,7 +2,10 @@
   <div class="eyebrow">♧ ITINERARIO FORMATIVO</div>
   <h1>Mis Cursos y Trayectorias</h1>
   <p>
-    @if (levels().length) {
+    @if (isStaff()) {
+      Vista completa: como administrador o docente ves los {{ levels().length }} niveles
+      de todos los grupos de edad, sin bloqueos.
+    } @else if (levels().length) {
       Tu ruta para {{ levels()[0].ageGroupName }}. Aprueba la evaluación de cada nivel para
       desbloquear el siguiente y ganar su medalla.
     } @else {

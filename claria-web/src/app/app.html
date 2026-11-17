@@ -34,7 +34,9 @@
 
         <div class="student">
           <b>{{ displayName() }}</b>
-          @if (currentLevel(); as level) {
+          @if (roleLabel(); as role) {
+            <small>🛡 {{ role }}</small>
+          } @else if (currentLevel(); as level) {
             <small>📘 Nivel {{ level.levelNumber }}</small>
           }
 
