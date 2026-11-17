@@ -19,8 +19,6 @@
       </nav>
 
       <div class="top-actions">
-        <button class="audit-btn" (click)="auditOpen.set(true)">♧　Auditoría UX/UI</button>
-
         <button
           class="icon-btn theme"
           [attr.aria-label]="themeLabel()"
@@ -79,19 +77,4 @@
       </main>
     </div>
   </div>
-  <!-- Modal informativo de auditoría -->
-  @if (auditOpen()) {
-    <div class="modal-backdrop" (click)="auditOpen.set(false)">
-      <section class="modal panel" (click)="$event.stopPropagation()">
-        <button class="close" (click)="auditOpen.set(false)">×</button>
-        <div class="eyebrow">AUDITORÍA UX/UI</div>
-        <h2>Tu espacio de aprendizaje</h2>
-        <p>
-          ClarIA te ayuda a explorar la inteligencia artificial conservando tu criterio. Tu avance,
-          tus evaluaciones y tus medallas se guardan en tu cuenta.
-        </p>
-        <button class="btn primary" (click)="auditOpen.set(false)">Entendido</button>
-      </section>
-    </div>
-  }
 }
