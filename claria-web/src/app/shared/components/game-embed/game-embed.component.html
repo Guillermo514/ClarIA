@@ -1,13 +1,25 @@
-<section class="game panel">
+<section class="game panel" [class.game-done]="completed()">
   <div class="row-between">
     <div>
       <div class="eyebrow">🎮 DINÁMICA INTERACTIVA</div>
       <b>{{ title() }}</b>
     </div>
-    @if (playing()) {
-      <button class="btn" (click)="playing.set(false)">Cerrar juego</button>
+    @if (completed()) {
+      <span class="game-status">✓ Juego terminado</span>
+    } @else if (playing()) {
+      @if (countdown.remaining() > 0) {
+        <span class="game-status pending">Sigue jugando · {{ countdown.label() }}</span>
+      } @else {
+        <button class="btn primary" [disabled]="busy()" (click)="finish()">
+          {{ busy() ? 'Guardando…' : '✓ Terminé el juego' }}
+        </button>
+      }
     }
   </div>
+
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
 
   @if (!safeUrl()) {
     <p class="game-error">Este juego no está disponible.</p>
@@ -22,12 +34,19 @@
         referrerpolicy="strict-origin-when-cross-origin"
       ></iframe>
     </div>
+    <button class="text-button" (click)="playing.set(false)">Ocultar juego</button>
   } @else {
-    <button class="game-cover" (click)="playing.set(true)">
+    <button class="game-cover" (click)="play()">
       <span class="game-play">▶</span>
       <span>
-        <b>Jugar ahora</b>
-        <small>Se abre aquí mismo. Contenido de Educaplay.</small>
+        <b>{{ completed() ? 'Jugar otra vez' : 'Jugar ahora' }}</b>
+        <small>
+          @if (completed()) {
+            Ya lo terminaste; puedes repetirlo cuando quieras.
+          } @else {
+            Juega al menos 30 segundos y luego marca «Terminé el juego». Contenido de Educaplay.
+          }
+        </small>
       </span>
     </button>
   }

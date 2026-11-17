@@ -3,11 +3,12 @@ import { RouterLink } from '@angular/router';
 
 import { ContentService } from '../../core/content/content.service';
 import { LessonSummary, LevelSummary } from '../../core/models/domain.models';
+import { LevelRequirementsComponent } from '../../shared/components/level-requirements/level-requirements.component';
 import { MedalComponent } from '../../shared/components/medal/medal.component';
 
 /** Un nivel: sus lecciones en orden y el acceso a su evaluación final. */
 @Component({
-  imports: [RouterLink, MedalComponent],
+  imports: [RouterLink, MedalComponent, LevelRequirementsComponent],
   templateUrl: './level.page.html',
 })
 export class LevelPage {
@@ -25,6 +26,7 @@ export class LevelPage {
   }
 
   private async load(): Promise<void> {
+    await this.content.refreshLevels();
     const level = await this.content.getLevel(Number(this.nivel()));
     if (!level) {
       this.state.set('missing');

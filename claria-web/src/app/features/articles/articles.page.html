@@ -28,8 +28,13 @@
 <section class="grid articles">
   @for (article of filtered(); track article.id) {
     <article class="panel article">
-      <div class="meta">
-        <b>Lección {{ article.lessonCode }}</b> · {{ article.lessonTitle }}
+      <div class="row-between">
+        <div class="meta">
+          <b>Lección {{ article.lessonCode }}</b> · {{ article.lessonTitle }}
+        </div>
+        @if (article.read) {
+          <span class="read-badge">✓ Leído</span>
+        }
       </div>
       <h2>{{ article.title }}</h2>
       <p>{{ article.summary }}</p>
@@ -69,13 +74,28 @@
 
       <app-text-blocks [text]="reading.body" />
 
-      <div class="row-between">
+      @if (readerError()) {
+        <p class="form-error" role="alert">{{ readerError() }}</p>
+      }
+
+      <div class="row-between reader-actions">
         @if (reading.source) {
           <a class="text-button" [href]="reading.source.url" target="_blank" rel="noopener">
             Ver fuente original ↗
           </a>
         }
-        <button class="btn primary" (click)="close()">Cerrar</button>
+        <span class="reader-buttons">
+          @if (reading.read) {
+            <span class="read-badge">✓ Artículo leído</span>
+          } @else if (countdown.remaining() > 0) {
+            <span class="lesson-timer">Lectura {{ countdown.label() }}</span>
+          } @else {
+            <button class="btn primary" [disabled]="saving()" (click)="markRead()">
+              {{ saving() ? 'Guardando…' : '✓ Marcar como leído' }}
+            </button>
+          }
+          <button class="btn" (click)="close()">Cerrar</button>
+        </span>
       </div>
     </section>
   </div>

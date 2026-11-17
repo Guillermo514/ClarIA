@@ -1,7 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { ContentService } from '../../core/content/content.service';
+import { ContentError, ContentService } from '../../core/content/content.service';
+import { createCountdown } from '../../core/content/countdown';
 import { Article } from '../../core/models/domain.models';
 import { TextBlocksComponent } from '../../shared/components/text-blocks/text-blocks.component';
 
@@ -19,6 +20,10 @@ export class ArticlesPage {
   protected readonly opened = signal<Article | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal('');
+  /** Tiempo mínimo de lectura del artículo abierto (lo calcula el servidor). */
+  protected readonly countdown = createCountdown();
+  protected readonly saving = signal(false);
+  protected readonly readerError = signal('');
 
   protected readonly levelNumbers = computed(() => [
     ...new Set(this.articles().map((a) => a.levelNumber)),
@@ -34,8 +39,38 @@ export class ArticlesPage {
     void this.load();
   }
 
-  protected open(article: Article): void {
+  protected async open(article: Article): Promise<void> {
     this.opened.set(article);
+    this.readerError.set('');
+    this.countdown.start(0);
+    if (article.read) return;
+    try {
+      this.countdown.start((await this.content.startArticle(article.id)).secondsRemaining);
+    } catch (e) {
+      this.readerError.set(
+        e instanceof ContentError ? e.message : 'No pudimos registrar tu lectura.',
+      );
+    }
+  }
+
+  /** Disponible tras el tiempo mínimo; el servidor lo vuelve a verificar. */
+  protected async markRead(): Promise<void> {
+    const article = this.opened();
+    if (!article) return;
+    this.saving.set(true);
+    this.readerError.set('');
+    try {
+      await this.content.completeArticle(article.id);
+      const read = { ...article, read: true };
+      this.opened.set(read);
+      this.articles.update((list) => list.map((a) => (a.id === article.id ? read : a)));
+    } catch (e) {
+      this.readerError.set(
+        e instanceof ContentError ? e.message : 'No pudimos guardar tu lectura.',
+      );
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   protected close(): void {
@@ -53,7 +88,7 @@ export class ArticlesPage {
       const match = this.articles().find((a) => a.lessonCode === lesson);
       if (match) {
         this.levelFilter.set(match.levelNumber);
-        this.open(match);
+        void this.open(match);
       }
     } catch {
       this.error.set('No pudimos cargar los artículos.');

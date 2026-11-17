@@ -1,8 +1,11 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 
 import { AuthService } from '../auth/auth.service';
+import { PostgrestError } from '@supabase/supabase-js';
+
 import {
   Article,
+  CardStates,
   Flashcard,
   LessonDetail,
   LessonSummary,
@@ -11,6 +14,7 @@ import {
   QuizAnswer,
   QuizResult,
   SourceLink,
+  TimedStart,
 } from '../models/domain.models';
 import { SupabaseService } from '../supabase/supabase.service';
 
@@ -27,6 +31,11 @@ interface LevelRow {
   best_score: number | null;
   lessons_total: number;
   lessons_completed: number;
+  games_total: number;
+  games_completed: number;
+  flashcards_total: number;
+  flashcards_seen: number;
+  quiz_ready: boolean;
   medal_name: string | null;
   medal_icon: string | null;
   medal_earned: boolean;
@@ -34,6 +43,18 @@ interface LevelRow {
 
 interface SourceRow {
   sources: { citation: string; url: string } | null;
+}
+
+/**
+ * Error con un mensaje listo para mostrarse al estudiante. Las funciones de la base
+ * de datos ya explican en español qué falta (p. ej. «Juega al menos 30 segundos…»).
+ */
+export class ContentError extends Error {}
+
+function friendly(error: PostgrestError): ContentError {
+  return new ContentError(
+    error.code === 'P0001' ? error.message : 'Algo salió mal. Inténtalo de nuevo.',
+  );
 }
 
 /** Primera fuente de un artículo (cada artículo del plan cita una). */
@@ -88,6 +109,11 @@ export class ContentService {
       bestScore: row.best_score === null ? null : Number(row.best_score),
       lessonsTotal: row.lessons_total,
       lessonsCompleted: row.lessons_completed,
+      gamesTotal: row.games_total,
+      gamesCompleted: row.games_completed,
+      flashcardsTotal: row.flashcards_total,
+      flashcardsSeen: row.flashcards_seen,
+      quizReady: row.quiz_ready,
       medalName: row.medal_name,
       medalIcon: row.medal_icon,
       medalEarned: row.medal_earned,
@@ -132,24 +158,33 @@ export class ContentService {
   }
 
   async getLesson(code: string): Promise<LessonDetail | null> {
-    const [{ data, error }, completed] = await Promise.all([
+    const [{ data, error }, completed, finishedGames, readArticles] = await Promise.all([
       this.supabase
         .from('lessons')
         .select(
           `id, code, title, content, sort_order, duration_min, type, course_id,
            courses(level_number, title),
            lesson_activities(id, title, embed_url, sort_order),
-           articles(title, article_sources(sources(citation, url)))`,
+           articles(id, title, article_sources(sources(citation, url))),
+           flashcards(id)`,
         )
         .eq('code', code)
         .maybeSingle(),
       this.completedLessonIds(),
+      this.completedActivityIds(),
+      this.readArticleIds(),
     ]);
     if (error) throw error;
     if (!data) return null;
 
     const course = data.courses as unknown as { level_number: number; title: string };
-    const articles = data.articles as unknown as { title: string; article_sources: SourceRow[] }[];
+    const articles = data.articles as unknown as {
+      id: string;
+      title: string;
+      article_sources: SourceRow[];
+    }[];
+    const cardIds = ((data.flashcards ?? []) as { id: string }[]).map((c) => c.id);
+    const { seenIds } = await this.getCardStates(cardIds);
     const activities = [...(data.lesson_activities ?? [])].sort(
       (a, b) => a.sort_order - b.sort_order,
     );
@@ -166,24 +201,43 @@ export class ContentService {
       courseId: data.course_id,
       levelNumber: course.level_number,
       levelTitle: course.title,
-      activities: activities.map((a) => ({ id: a.id, title: a.title, embedUrl: a.embed_url })),
+      activities: activities.map((a) => ({
+        id: a.id,
+        title: a.title,
+        embedUrl: a.embed_url,
+        completed: finishedGames.has(a.id),
+      })),
+      articleId: articles[0]?.id ?? null,
       articleTitle: articles[0]?.title ?? null,
+      articleRead: articles[0] ? readArticles.has(articles[0].id) : true,
+      cardsTotal: cardIds.length,
+      cardsSeen: seenIds.length,
       source: firstSource(articles[0]?.article_sources),
     };
   }
 
-  /** Marca la lección como completada (la base de datos verifica que el nivel esté desbloqueado). */
+  /** Registra que abrió la lección; el servidor indica cuántos segundos faltan para completarla. */
+  async startLesson(lessonId: string): Promise<TimedStart> {
+    return this.timedStart('start_lesson', { p_lesson_id: lessonId });
+  }
+
+  /** El servidor verifica el tiempo de lectura, el juego, las flashcards y el artículo. */
   async completeLesson(lessonId: string): Promise<void> {
-    const userId = this.requireUser();
-    const now = new Date().toISOString();
-    const { error } = await this.supabase.from('lesson_progress').upsert({
-      user_id: userId,
-      lesson_id: lessonId,
-      status: 'completed',
-      completed_at: now,
-      last_activity_at: now,
-    });
-    if (error) throw error;
+    const { error } = await this.supabase.rpc('complete_lesson', { p_lesson_id: lessonId });
+    if (error) throw friendly(error);
+    void this.refreshLevels();
+  }
+
+  // --- Juegos ---------------------------------------------------------------
+
+  /** Al pulsar «Jugar»: empieza a contar el tiempo mínimo de juego. */
+  async startActivity(activityId: string): Promise<TimedStart> {
+    return this.timedStart('start_activity', { p_activity_id: activityId });
+  }
+
+  async completeActivity(activityId: string): Promise<void> {
+    const { error } = await this.supabase.rpc('complete_activity', { p_activity_id: activityId });
+    if (error) throw friendly(error);
     void this.refreshLevels();
   }
 
@@ -191,6 +245,7 @@ export class ContentService {
 
   async getArticles(courseIds: string[]): Promise<Article[]> {
     if (!courseIds.length) return [];
+    const read = await this.readArticleIds();
     const { data, error } = await this.supabase
       .from('articles')
       .select(
@@ -220,11 +275,22 @@ export class ContentService {
           lessonTitle: lesson.title,
           levelNumber: lesson.courses.level_number,
           source: firstSource(row.article_sources as unknown as SourceRow[]),
+          read: read.has(row.id),
           order: lesson.courses.level_number * 100 + lesson.sort_order,
         };
       })
       .sort((a, b) => a.order - b.order)
       .map(({ order: _order, ...article }) => article);
+  }
+
+  /** Al abrir el artículo: empieza a contar el tiempo mínimo de lectura. */
+  async startArticle(articleId: string): Promise<TimedStart> {
+    return this.timedStart('start_article', { p_article_id: articleId });
+  }
+
+  async completeArticle(articleId: string): Promise<void> {
+    const { error } = await this.supabase.rpc('complete_article', { p_article_id: articleId });
+    if (error) throw friendly(error);
   }
 
   // --- Flashcards -----------------------------------------------------------
@@ -256,16 +322,25 @@ export class ContentService {
       .map(({ order: _order, ...card }) => card);
   }
 
-  /** Ids de las tarjetas que el estudiante ya domina (caja 5 del repaso). */
-  async getMasteredCardIds(cardIds: string[]): Promise<string[]> {
-    if (!cardIds.length) return [];
+  /** Tarjetas que el estudiante ya volteó y las que ya domina (caja 5 del repaso). */
+  async getCardStates(cardIds: string[]): Promise<CardStates> {
+    if (!cardIds.length) return { seenIds: [], masteredIds: [] };
     const { data, error } = await this.supabase
       .from('flashcard_reviews')
-      .select('card_id')
-      .in('card_id', cardIds)
-      .eq('box', 5);
+      .select('card_id, box, seen_at')
+      .in('card_id', cardIds);
     if (error) throw error;
-    return (data ?? []).map((row) => row.card_id);
+    const rows = data ?? [];
+    return {
+      seenIds: rows.filter((r) => r.seen_at).map((r) => r.card_id),
+      masteredIds: rows.filter((r) => r.box === 5).map((r) => r.card_id),
+    };
+  }
+
+  /** Registra que vio la respuesta de la tarjeta (cuenta para presentar la evaluación). */
+  async markCardSeen(cardId: string): Promise<void> {
+    const { error } = await this.supabase.rpc('mark_flashcard_seen', { p_card_id: cardId });
+    if (error) throw friendly(error);
   }
 
   async setCardMastered(cardId: string): Promise<void> {
@@ -315,7 +390,7 @@ export class ContentService {
       p_quiz_id: quizId,
       p_answers: answers.map((a) => ({ question_id: a.questionId, option_ids: a.optionIds })),
     });
-    if (error) throw error;
+    if (error) throw friendly(error);
 
     const raw = data as {
       score: number;
@@ -344,6 +419,29 @@ export class ContentService {
   }
 
   // --- Apoyo ----------------------------------------------------------------
+
+  private async timedStart(fn: string, args: Record<string, string>): Promise<TimedStart> {
+    const { data, error } = await this.supabase.rpc(fn, args);
+    if (error) throw friendly(error);
+    const raw = data as { completed: boolean; seconds_remaining: number };
+    return { completed: raw.completed, secondsRemaining: raw.seconds_remaining };
+  }
+
+  private async readArticleIds(): Promise<Set<string>> {
+    const { data } = await this.supabase
+      .from('article_progress')
+      .select('article_id')
+      .not('completed_at', 'is', null);
+    return new Set((data ?? []).map((row) => row.article_id));
+  }
+
+  private async completedActivityIds(): Promise<Set<string>> {
+    const { data } = await this.supabase
+      .from('activity_progress')
+      .select('activity_id')
+      .not('completed_at', 'is', null);
+    return new Set((data ?? []).map((row) => row.activity_id));
+  }
 
   private async completedLessonIds(): Promise<Set<string>> {
     const { data } = await this.supabase

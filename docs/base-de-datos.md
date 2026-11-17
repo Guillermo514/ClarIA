@@ -79,11 +79,30 @@ la API. Es intencional: las de apoyo a RLS solo responden sí/no sobre el usuari
   evaluación final del nivel anterior. Al aprobar se otorga la medalla del nivel.
 - Docentes y administradores ven los 12 niveles desbloqueados.
 
+### Requisitos para presentar la evaluación de un nivel
+
+| Requisito | Cómo se cumple | Lo verifica |
+|---|---|---|
+| Todas las lecciones completadas | «Marcar como completada» se habilita tras **60 s** en la lección y cuando ya se terminó su juego (si tiene), se voltearon sus flashcards y se leyó su artículo. | `start_lesson()` / `complete_lesson()` |
+| Artículo de cada lección leído | Al abrirlo empieza 1 min de lectura; luego se habilita «Marcar como leído». | `start_article()` / `complete_article()` |
+| Todos los juegos terminados | Educaplay no avisa cuándo termina un juego: tras **30 s** jugando se habilita «Terminé el juego». | `start_activity()` / `complete_activity()` |
+| Todas las flashcards volteadas | Basta con ver la respuesta de cada tarjeta una vez («¡La domino!» es opcional). | `mark_flashcard_seen()` |
+
+- Los tiempos los mide el **servidor**; el navegador solo muestra la cuenta regresiva.
+- El progreso de lecciones, juegos y tarjetas vistas solo se puede escribir con esas funciones.
+- Si faltan requisitos, `submit_quiz()` rechaza el intento (trigger `quiz_attempts_check_requirements`).
+- Los tiempos mínimos están en `min_lesson_seconds()`, `min_game_seconds()` (migración 6) y `min_article_seconds()` (migración 8).
+- Administradores y docentes no tienen estos requisitos.
+
 ## Funciones para la aplicación (RPC)
 
 | Función | Uso |
 |---|---|
-| `get_my_levels()` | Niveles del usuario con desbloqueo, progreso, mejor puntaje y medalla. |
+| `get_my_levels()` | Niveles del usuario con desbloqueo, avance (lecciones, juegos, flashcards), si ya puede presentar (`quiz_ready`), mejor puntaje y medalla. |
+| `start_lesson(lesson_id)` / `complete_lesson(lesson_id)` | Abre la lección (devuelve los segundos que faltan) y la marca como completada. |
+| `start_activity(activity_id)` / `complete_activity(activity_id)` | Inicia y termina un juego. |
+| `mark_flashcard_seen(card_id)` | Registra que vio la respuesta de una tarjeta. |
+| `start_article(article_id)` / `complete_article(article_id)` | Abre un artículo y lo marca como leído. |
 | `submit_quiz(quiz_id, answers)` | Califica, guarda el intento y otorga la medalla. `answers`: `[{"question_id", "option_ids": [...]}]`. |
 | `load_curriculum(payload)` | Carga o actualiza el Plan Curricular (solo admin). |
 
