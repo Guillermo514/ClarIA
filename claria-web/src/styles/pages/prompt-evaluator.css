@@ -1,0 +1,486 @@
+/* ==========================================================================
+   Página: Evaluador de IA (prompts)
+   ========================================================================== */
+
+.evaluator {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+/* --- Misiones ----------------------------------------------------------- */
+
+.missions {
+  display: grid;
+  gap: 10px;
+}
+
+.mission {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 14px 16px;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.mission:hover,
+.mission.selected {
+  border-color: var(--brand);
+}
+
+.mission.selected {
+  background: var(--brand-tint);
+}
+
+.mission-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mission small {
+  color: var(--ink-subtle);
+}
+
+.mission-ok {
+  color: #10c98f;
+  font-weight: 800;
+}
+
+/* --- Columna principal -------------------------------------------------- */
+
+.evaluator-main {
+  display: grid;
+  gap: 16px;
+}
+
+.mission-goal,
+.prompt-editor,
+.evaluation,
+.history,
+.attempt-result {
+  padding: 22px;
+}
+
+.mission-goal h2 {
+  margin: 8px 0;
+}
+
+.mission-goal small {
+  color: var(--ink-subtle);
+}
+
+.prompt-editor textarea {
+  display: block;
+  width: 100%;
+  min-height: 170px;
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.counter {
+  color: var(--ink-subtle);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.editor-actions {
+  margin-top: 12px;
+}
+
+.template pre {
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+  font: inherit;
+}
+
+.attempt-result {
+  border-color: #f0a43a;
+}
+
+.attempt-result.ok {
+  border-color: #10c98f;
+  color: #10c98f;
+}
+
+/* --- Evaluación --------------------------------------------------------- */
+
+.evaluation {
+  transition: opacity 0.2s;
+}
+
+.evaluation.updating {
+  opacity: 0.6;
+}
+
+.evaluation.empty p {
+  margin: 0;
+  color: var(--ink-subtle);
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.score-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 104px;
+  height: 104px;
+}
+
+.score-ring svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.score-ring circle {
+  fill: none;
+  stroke-width: 10;
+}
+
+.score-ring .ring-fill {
+  stroke: var(--brand);
+  stroke-linecap: round;
+  stroke-dasharray: var(--percent) 100;
+  transition: stroke-dasharray 0.5s ease-out;
+}
+
+.score-ring .ring-track {
+  stroke: var(--line);
+}
+
+.score-ring strong {
+  font-size: 30px;
+}
+
+.ev-message {
+  margin: 6px 0 0;
+}
+
+.penalty {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-left: 4px solid #f0566a;
+  border-radius: 10px;
+  background: rgb(240 86 106 / 12%);
+}
+
+.criteria {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.criterion {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.criterion-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 800;
+}
+
+.criterion.strong .criterion-icon {
+  background: rgb(16 201 143 / 15%);
+  color: #10c98f;
+}
+
+.criterion.partial .criterion-icon {
+  background: rgb(240 164 58 / 15%);
+  color: #f0a43a;
+}
+
+.criterion.missing .criterion-icon {
+  background: rgb(240 86 106 / 15%);
+  color: #f0566a;
+}
+
+.criterion .bar {
+  margin: 6px 0;
+}
+
+.criterion small {
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+/* --- Historial ---------------------------------------------------------- */
+
+.history ol {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history li {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-muted);
+}
+
+.history li.ok b {
+  color: #10c98f;
+}
+
+.improvement {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.history a {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+/* --- Responsive --------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .evaluator {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .missions {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .score-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* --- Constructor guiado ------------------------------------------------- */
+
+.evaluator-head {
+  align-items: flex-start;
+}
+
+.builder {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  padding-left: 14px;
+  border-left: 4px solid var(--line);
+  transition: border-color 0.2s;
+}
+
+.field.strong {
+  border-left-color: #10c98f;
+}
+
+.field.partial {
+  border-left-color: #f0a43a;
+}
+
+.field.missing {
+  border-left-color: #f0566a;
+}
+
+.field-head label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.field-head small {
+  color: var(--ink-subtle);
+}
+
+.field-num {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--brand-tint);
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.field-score {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.field.strong .field-score {
+  color: #10c98f;
+}
+
+.field.partial .field-score {
+  color: #f0a43a;
+}
+
+.field.missing .field-score {
+  color: #f0566a;
+}
+
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips li {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  color: var(--ink-subtle);
+  font-size: 12px;
+}
+
+.chips li.ok {
+  border-color: rgb(16 201 143 / 50%);
+  color: #10c98f;
+}
+
+.field-feedback {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ev-message.off-topic {
+  color: #f0566a;
+  font-weight: 700;
+}
+
+.evaluation .criterion {
+  margin-top: 14px;
+}
+
+.composed {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.composed pre,
+.review-card pre {
+  margin: 10px 0 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+
+/* --- Revisión docente --------------------------------------------------- */
+
+.review-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: var(--ink-muted);
+}
+
+.review-list {
+  display: grid;
+  gap: 14px;
+}
+
+.review-card {
+  padding: 18px 20px;
+}
+
+.review-card.ok {
+  border-color: rgb(16 201 143 / 45%);
+}
+
+.review-card small {
+  color: var(--ink-subtle);
+}
+
+.review-score {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.review-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.review-form label {
+  display: grid;
+  gap: 4px;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.review-form input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+}
+
+.review-form input[type='number'] {
+  width: 90px;
+}
+
+.review-note {
+  flex: 1;
+  min-width: 200px;
+}

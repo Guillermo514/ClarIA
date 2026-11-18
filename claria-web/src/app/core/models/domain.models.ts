@@ -93,6 +93,8 @@ export interface LessonDetail extends LessonSummary {
   articleRead: boolean;
   cardsTotal: number;
   cardsSeen: number;
+  /** Misión del evaluador obligatoria en esta lección (5.4 y 7.1). */
+  mission: { id: string; title: string; passed: boolean } | null;
   source: SourceLink | null;
 }
 
@@ -160,4 +162,102 @@ export interface QuizResult {
   passingScore: number;
   results: { questionId: string; correct: boolean; correctOptionIds: string[] }[];
   newMedal: { name: string; icon: string | null } | null;
+}
+
+// --- Evaluador de prompts ------------------------------------------------
+
+export type CriterionLevel = 'strong' | 'partial' | 'missing';
+export type PromptRubric = 'basica' | 'avanzada';
+
+/** Campo del constructor guiado (un ingrediente del prompt). */
+export interface PromptField {
+  key: string;
+  label: string;
+  description: string;
+  minWords: number;
+}
+
+/** Textos de los campos, por clave (rol, contexto, tarea, formato, ejemplo, tecnicas). */
+export type PromptFields = Record<string, string>;
+
+export interface CheckResult {
+  label: string;
+  ok: boolean;
+}
+
+/** Resultado de evaluate_guided_prompt() / submit_prompt_attempt(). */
+export interface PromptEvaluation {
+  score: number;
+  rubric: PromptRubric;
+  words: number;
+  composed: string;
+  criteria: {
+    key: string;
+    label: string;
+    description: string;
+    weight: number;
+    points: number;
+    level: CriterionLevel;
+    feedback: string;
+    checks: CheckResult[];
+    requirements: CheckResult[];
+    /** Términos de la misión que se encontraron en el campo. */
+    evidence: string[];
+    /** false para criterios que no son un campo (Eficiencia). */
+    guided: boolean;
+  }[];
+  penalties: { label: string; points: number; tip: string }[];
+  requirementsMet: number;
+  requirementsTotal: number;
+  /** El prompt no corresponde a la misión (puntaje limitado a 40). */
+  offTopic: boolean;
+  message: string;
+  /** Solo al enviar un intento de misión. */
+  attemptNo?: number;
+  passed?: boolean;
+}
+
+export interface MissionAttempt {
+  attemptNo: number;
+  score: number;
+  /** Puntaje corregido por un docente, si lo revisó. */
+  reviewedScore: number | null;
+  reviewNote: string | null;
+  passed: boolean;
+  promptText: string;
+  createdAt: string;
+}
+
+/** Misión del evaluador (tabla scenarios). */
+export interface Mission {
+  id: string;
+  title: string;
+  goal: string;
+  passingScore: number;
+  rubric: PromptRubric;
+  ageGroupCode: string;
+  ageGroupName: string;
+  /** Lección en la que es obligatoria (p. ej. "5.4"), si aplica. */
+  lessonCode: string | null;
+  levelNumber: number | null;
+  /** Lo que pide la misión en cada campo. */
+  requirements: { field: string; label: string }[];
+  attempts: MissionAttempt[];
+  passed: boolean;
+  bestScore: number | null;
+}
+
+/** Intento visto por un docente en la página de revisión. */
+export interface AttemptForReview {
+  id: string;
+  studentName: string;
+  missionTitle: string;
+  lessonCode: string | null;
+  attemptNo: number;
+  score: number;
+  reviewedScore: number | null;
+  reviewNote: string | null;
+  passed: boolean;
+  promptText: string;
+  createdAt: string;
 }

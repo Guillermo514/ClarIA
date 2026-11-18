@@ -1,0 +1,63 @@
+<a class="crumb-link" routerLink="/evaluador">‹ Evaluador de IA</a>
+
+<div class="page-head">
+  <div class="eyebrow">🛡 REVISIÓN DOCENTE</div>
+  <h1>Intentos del Evaluador de IA</h1>
+  <p>
+    Revisa los prompts de tus estudiantes. Si las reglas calificaron mal un intento, corrige el
+    puntaje: el sistema recalcula si aprueba la misión.
+  </p>
+</div>
+
+<label class="check review-filter">
+  <input type="checkbox" [ngModel]="onlyRequired()" (ngModelChange)="onlyRequired.set($event)" />
+  Solo misiones obligatorias (lecciones 5.4 y 7.1)
+</label>
+
+@if (error()) {
+  <p class="form-error" role="alert">{{ error() }}</p>
+}
+
+<section class="review-list">
+  @for (a of visible(); track a.id) {
+    <article class="panel review-card" [class.ok]="a.passed">
+      <div class="row-between">
+        <div>
+          <b>{{ a.studentName }}</b>
+          <small>
+            · {{ a.missionTitle }}
+            @if (a.lessonCode) {
+              (lección {{ a.lessonCode }})
+            }
+            · intento {{ a.attemptNo }}
+          </small>
+        </div>
+        <span class="review-score">
+          {{ a.score }} pts
+          @if (a.reviewedScore !== null) {
+            → {{ a.reviewedScore }} (revisado)
+          }
+          {{ a.passed ? '✓' : '' }}
+        </span>
+      </div>
+
+      <pre>{{ a.promptText }}</pre>
+
+      <div class="review-form">
+        <label>
+          Puntaje
+          <input type="number" min="0" max="100" [(ngModel)]="drafts[a.id].score" />
+        </label>
+        <label class="review-note">
+          Nota para el estudiante (opcional)
+          <input maxlength="500" [(ngModel)]="drafts[a.id].note" />
+        </label>
+        <button class="btn primary" (click)="save(a)">
+          {{ savedId() === a.id ? '✓ Guardado' : 'Guardar revisión' }}
+        </button>
+      </div>
+    </article>
+  } @empty {
+    <p class="loading">{{ loading() ? 'Cargando intentos…' : 'No hay intentos que revisar.' }}</p>
+  }
+</section>

@@ -46,6 +46,20 @@
           />
         }
 
+        @if (lesson.mission; as mission) {
+          <a
+            class="panel resource mission-resource"
+            routerLink="/evaluador"
+            [queryParams]="{ mision: mission.id }"
+          >
+            <span class="eyebrow">🧪 MISIÓN DEL EVALUADOR DE IA →</span>
+            <b>{{ mission.title }}</b>
+            <small [class.done]="mission.passed">
+              {{ mission.passed ? '✓ Misión aprobada' : 'Logra 70 puntos o más para completar esta lección' }}
+            </small>
+          </a>
+        }
+
         <section class="lesson-resources">
           <a
             class="panel resource"
